@@ -50,3 +50,28 @@ pub fn dot_product_encrypted_inverted_clear<Scalar, InputCont, OutputCont>(
         );
     }
 }
+
+pub fn extract_dot_product_as_lwe_ciphertext<Scalar, InputCont>(
+    glwe: &GlweCiphertext<InputCont>,
+) -> LweCiphertextOwned<Scalar>
+where
+    Scalar: UnsignedInteger,
+    InputCont: Container<Element = Scalar>,
+{
+    let mut lwe_ciphertext = LweCiphertext::new(
+        Scalar::ZERO,
+        glwe.glwe_size()
+            .to_glwe_dimension()
+            .to_equivalent_lwe_dimension(glwe.polynomial_size())
+            .to_lwe_size(),
+        glwe.ciphertext_modulus(),
+    );
+
+    extract_lwe_sample_from_glwe_ciphertext(
+        glwe,
+        &mut lwe_ciphertext,
+        MonomialDegree(glwe.polynomial_size().0 - 1),
+    );
+
+    lwe_ciphertext
+}

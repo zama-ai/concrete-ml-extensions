@@ -27,6 +27,8 @@ fn main() {
         &mut secret_rng,
     );
 
+    let glwe_secret_key_as_lwe_secret_key = glwe_secret_key.as_lwe_secret_key();
+
     let glwe = encryption::encrypt_slice_as_glwe(
         &data,
         &glwe_secret_key,
@@ -53,8 +55,13 @@ fn main() {
         clear_dot += lhs * rhs;
     }
 
-    let decrypted_dot =
-        encryption::decrypt_glwe(&glwe_secret_key, &result, bits_reserved_for_computation);
+    let result_as_lwe = computations::extract_dot_product_as_lwe_ciphertext(&result);
 
-    assert_eq!(*decrypted_dot.last().unwrap(), clear_dot);
+    let decrypted_dot = encryption::decrypt_lwe(
+        &glwe_secret_key_as_lwe_secret_key,
+        &result_as_lwe,
+        bits_reserved_for_computation,
+    );
+
+    assert_eq!(decrypted_dot, clear_dot);
 }

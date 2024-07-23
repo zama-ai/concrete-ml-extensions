@@ -99,3 +99,32 @@ where
 
     decoded
 }
+
+pub fn decrypt_lwe<Scalar, InputCont, KeyCont>(
+    lwe_secret_key: &LweSecretKey<KeyCont>,
+    lwe: &LweCiphertext<InputCont>,
+    bits_reserved_for_computation: usize,
+) -> Scalar
+where
+    Scalar: UnsignedTorus,
+    InputCont: Container<Element = Scalar>,
+    KeyCont: Container<Element = Scalar>,
+{
+    let decrypted = decrypt_lwe_ciphertext(lwe_secret_key, lwe);
+
+    let ciphertext_modulus = lwe.ciphertext_modulus();
+    let delta = encryption_delta(bits_reserved_for_computation, ciphertext_modulus);
+
+    let decomposer = SignedDecomposer::new(
+        DecompositionBaseLog(
+            bits_reserved_for_computation
+                + ciphertext_modulus
+                    .get_power_of_two_scaling_to_native_torus()
+                    .ilog2() as usize,
+        ),
+        DecompositionLevelCount(1),
+    );
+
+    (decomposer.closest_representable(decrypted.0) / delta)
+        % (Scalar::ONE << bits_reserved_for_computation)
+}
