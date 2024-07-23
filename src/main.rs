@@ -5,9 +5,9 @@ mod encryption;
 fn main() {
     let encryption_glwe_dimension = GlweDimension(1);
     let polynomial_size = PolynomialSize(2048);
-    // TODO: For now no noise
+    // TODO: For now very small noise, find secure noise
     let glwe_encryption_noise_distribution =
-        DynamicDistribution::new_gaussian_from_std_dev(StandardDev(0.0));
+        DynamicDistribution::new_gaussian_from_std_dev(StandardDev(9.5367431640625e-07));
 
     let ciphertext_modulus = CiphertextModulus::try_new_power_of_2(22).unwrap();
     let bits_reserved_for_computation = 10;
