@@ -1,3 +1,5 @@
+#![allow(clippy::excessive_precision)]
+
 use tfhe::core_crypto::prelude::*;
 
 mod computations;
@@ -29,14 +31,33 @@ fn main() {
 
     let glwe_secret_key_as_lwe_secret_key = glwe_secret_key.as_lwe_secret_key();
 
-    let glwe = encryption::encrypt_slice_as_glwe(
+    // Other sanity check without seeding
+    {
+        let glwe = encryption::encrypt_slice_as_glwe(
+            &data,
+            &glwe_secret_key,
+            bits_reserved_for_computation,
+            glwe_encryption_noise_distribution,
+            ciphertext_modulus,
+            &mut encryption_rng,
+        );
+
+        let decrypted =
+            encryption::decrypt_glwe(&glwe_secret_key, &glwe, bits_reserved_for_computation);
+
+        assert_eq!(&decrypted, &data);
+    }
+
+    let seeded_glwe = encryption::encrypt_slice_as_seeded_glwe(
         &data,
         &glwe_secret_key,
         bits_reserved_for_computation,
         glwe_encryption_noise_distribution,
         ciphertext_modulus,
-        &mut encryption_rng,
+        seeder,
     );
+
+    let glwe = seeded_glwe.decompress_into_glwe_ciphertext();
 
     let decrypted =
         encryption::decrypt_glwe(&glwe_secret_key, &glwe, bits_reserved_for_computation);

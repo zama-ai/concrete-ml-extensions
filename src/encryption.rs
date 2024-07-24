@@ -21,6 +21,24 @@ pub fn encryption_delta<Scalar: UnsignedInteger>(
     }
 }
 
+pub fn encode_data_for_encryption<Scalar, OutputCont>(
+    input: &[Scalar],
+    plaintext_list: &mut PlaintextList<OutputCont>,
+    bits_reserved_for_computation: usize,
+    ciphertext_modulus: CiphertextModulus<Scalar>,
+) where
+    Scalar: UnsignedInteger,
+    OutputCont: ContainerMut<Element = Scalar>,
+{
+    assert!(input.len() <= plaintext_list.entity_count());
+
+    let delta = encryption_delta(bits_reserved_for_computation, ciphertext_modulus);
+
+    for (plain, input) in plaintext_list.iter_mut().zip(input.iter()) {
+        *plain.0 = (*input) * delta;
+    }
+}
+
 pub fn encrypt_slice_as_glwe<Scalar, KeyCont, NoiseDistribution>(
     input: &[Scalar],
     glwe_secret_key: &GlweSecretKey<KeyCont>,
@@ -36,16 +54,17 @@ where
 {
     assert!(input.len() <= glwe_secret_key.polynomial_size().0);
 
-    let delta = encryption_delta(bits_reserved_for_computation, ciphertext_modulus);
-
     let mut plaintext_list = PlaintextList::new(
         Scalar::ZERO,
         PlaintextCount(glwe_secret_key.polynomial_size().0),
     );
 
-    for (plain, input) in plaintext_list.iter_mut().zip(input.iter()) {
-        *plain.0 = (*input) * delta;
-    }
+    encode_data_for_encryption(
+        input,
+        &mut plaintext_list,
+        bits_reserved_for_computation,
+        ciphertext_modulus,
+    );
 
     let mut glwe = GlweCiphertext::new(
         Scalar::ZERO,
@@ -55,7 +74,7 @@ where
     );
 
     encrypt_glwe_ciphertext(
-        &glwe_secret_key,
+        glwe_secret_key,
         &mut glwe,
         &plaintext_list,
         noise_distribution,
@@ -63,6 +82,53 @@ where
     );
 
     glwe
+}
+
+pub fn encrypt_slice_as_seeded_glwe<Scalar, KeyCont, NoiseDistribution, NoiseSeeder>(
+    input: &[Scalar],
+    glwe_secret_key: &GlweSecretKey<KeyCont>,
+    bits_reserved_for_computation: usize,
+    noise_distribution: NoiseDistribution,
+    ciphertext_modulus: CiphertextModulus<Scalar>,
+    seeder: &mut NoiseSeeder,
+) -> SeededGlweCiphertextOwned<Scalar>
+where
+    NoiseDistribution: Distribution,
+    Scalar: UnsignedInteger + Encryptable<Uniform, NoiseDistribution>,
+    KeyCont: Container<Element = Scalar>,
+    NoiseSeeder: Seeder + ?Sized,
+{
+    assert!(input.len() <= glwe_secret_key.polynomial_size().0);
+
+    let mut plaintext_list = PlaintextList::new(
+        Scalar::ZERO,
+        PlaintextCount(glwe_secret_key.polynomial_size().0),
+    );
+
+    encode_data_for_encryption(
+        input,
+        &mut plaintext_list,
+        bits_reserved_for_computation,
+        ciphertext_modulus,
+    );
+
+    let mut seeded_glwe = SeededGlweCiphertext::new(
+        Scalar::ZERO,
+        glwe_secret_key.glwe_dimension().to_glwe_size(),
+        glwe_secret_key.polynomial_size(),
+        seeder.seed().into(),
+        ciphertext_modulus,
+    );
+
+    encrypt_seeded_glwe_ciphertext(
+        glwe_secret_key,
+        &mut seeded_glwe,
+        &plaintext_list,
+        noise_distribution,
+        seeder,
+    );
+
+    seeded_glwe
 }
 
 pub fn decrypt_glwe<Scalar, InputCont, KeyCont>(
@@ -77,7 +143,7 @@ where
 {
     let mut decrypted = PlaintextList::new(Scalar::ZERO, PlaintextCount(glwe.polynomial_size().0));
     let mut decoded = vec![Scalar::ZERO; decrypted.plaintext_count().0];
-    decrypt_glwe_ciphertext(glwe_secret_key, &glwe, &mut decrypted);
+    decrypt_glwe_ciphertext(glwe_secret_key, glwe, &mut decrypted);
 
     let ciphertext_modulus = glwe.ciphertext_modulus();
     let delta = encryption_delta(bits_reserved_for_computation, ciphertext_modulus);
