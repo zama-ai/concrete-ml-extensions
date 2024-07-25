@@ -69,7 +69,8 @@ fn main() {
 
     let serialized = bincode::serialize(&mod_switched).unwrap();
 
-    let deserialized = bincode::deserialize(&serialized);
+    let deserialized: compression::CompressedModulusSwitchedSeededGlweCiphertext<u32> =
+        bincode::deserialize(&serialized).unwrap();
 
     let demod_switched = deserialized.extract();
 
