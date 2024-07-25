@@ -39,6 +39,7 @@ pub fn encode_data_for_encryption<Scalar, OutputCont>(
     }
 }
 
+#[allow(dead_code)]
 pub fn encrypt_slice_as_glwe<Scalar, KeyCont, NoiseDistribution>(
     input: &[Scalar],
     glwe_secret_key: &GlweSecretKey<KeyCont>,
