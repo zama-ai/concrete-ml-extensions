@@ -1,4 +1,6 @@
+use rayon::prelude::*;
 use tfhe::core_crypto::commons::math::random::CompressionSeed;
+use tfhe::core_crypto::entities::compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext;
 use tfhe::core_crypto::entities::packed_integers::PackedIntegers;
 use tfhe::core_crypto::fft_impl::common::modulus_switch;
 use tfhe::core_crypto::prelude::*;
@@ -96,5 +98,77 @@ impl<Scalar: UnsignedTorus> CompressedModulusSwitchedSeededGlweCiphertext<Scalar
             self.compression_seed,
             self.uncompressed_ciphertext_modulus(),
         )
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct CompressionKey<Scalar: UnsignedInteger> {
+    pub packing_key_switching_key: LwePackingKeyswitchKeyOwned<Scalar>,
+    pub lwe_per_glwe: LweCiphertextCount,
+    pub storage_log_modulus: CiphertextModulusLog,
+}
+
+impl<Scalar: UnsignedTorus + Sync + Send> CompressionKey<Scalar> {
+    pub fn compress_ciphertexts_into_list<InputCont>(
+        &self,
+        ciphertexts: &[LweCiphertext<InputCont>],
+    ) -> Vec<CompressedModulusSwitchedGlweCiphertext<Scalar>>
+    where
+        InputCont: Container<Element = Scalar> + Sync,
+    {
+        let lwe_pksk = &self.packing_key_switching_key;
+
+        let polynomial_size = lwe_pksk.output_polynomial_size();
+        let ciphertext_modulus = lwe_pksk.ciphertext_modulus();
+        let glwe_size = lwe_pksk.output_glwe_size();
+        let lwe_size = lwe_pksk.input_key_lwe_dimension().to_lwe_size();
+
+        let lwe_per_glwe = self.lwe_per_glwe;
+
+        assert!(
+            lwe_per_glwe.0 <= polynomial_size.0,
+            "Cannot pack more than polynomial_size(={}) elements per glwe, {} requested",
+            polynomial_size.0,
+            lwe_per_glwe.0,
+        );
+
+        ciphertexts
+            .par_chunks(lwe_per_glwe.0)
+            .map(|ct_list| {
+                let mut list: Vec<_> = vec![];
+
+                for ct in ct_list {
+                    assert_eq!(
+                        lwe_size,
+                        ct.lwe_size(),
+                        "All ciphertexts do not have the same lwe size as the packing keyswitch key"
+                    );
+
+                    list.extend(ct.as_ref());
+                }
+
+                let list = LweCiphertextList::from_container(list, lwe_size, ciphertext_modulus);
+
+                let bodies_count = LweCiphertextCount(ct_list.len());
+
+                let mut out = GlweCiphertext::new(
+                    Scalar::ZERO,
+                    glwe_size,
+                    polynomial_size,
+                    ciphertext_modulus,
+                );
+
+                // TODO: add primitives to avoid having to use list primitives when possible
+                par_keyswitch_lwe_ciphertext_list_and_pack_in_glwe_ciphertext(
+                    lwe_pksk, &list, &mut out,
+                );
+
+                CompressedModulusSwitchedGlweCiphertext::compress(
+                    &out,
+                    self.storage_log_modulus,
+                    bodies_count,
+                )
+            })
+            .collect()
     }
 }
