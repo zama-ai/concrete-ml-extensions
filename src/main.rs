@@ -2,6 +2,7 @@
 
 use tfhe::core_crypto::prelude::*;
 
+mod compression;
 mod computations;
 mod encryption;
 
@@ -12,8 +13,12 @@ fn main() {
     let glwe_encryption_noise_distribution =
         DynamicDistribution::new_gaussian_from_std_dev(StandardDev(3.725290298461914e-09));
 
-    let ciphertext_modulus = CiphertextModulus::try_new_power_of_2(30).unwrap();
-    let bits_reserved_for_computation = 20;
+    let ciphertext_modulus_bit_count = 31;
+    let ciphertext_modulus =
+        CiphertextModulus::try_new_power_of_2(ciphertext_modulus_bit_count).unwrap();
+    let mod_switch_bit_count = ciphertext_modulus_bit_count - 1;
+    let mod_switch_modulus = CiphertextModulusLog(mod_switch_bit_count);
+    let bits_reserved_for_computation = 15;
 
     let data: Vec<u32> = (0..polynomial_size.0).map(|x| x as u32 % 2).collect();
 
@@ -57,7 +62,18 @@ fn main() {
         seeder,
     );
 
-    let glwe = seeded_glwe.decompress_into_glwe_ciphertext();
+    let mod_switched = compression::CompressedModulusSwitchedSeededGlweCiphertext::compress(
+        &seeded_glwe,
+        mod_switch_modulus,
+    );
+
+    let serialized = bincode::serialize(&mod_switched).unwrap();
+
+    let deserialized = bincode::deserialize(&serialized);
+
+    let demod_switched = deserialized.extract();
+
+    let glwe = demod_switched.decompress_into_glwe_ciphertext();
 
     let decrypted =
         encryption::decrypt_glwe(&glwe_secret_key, &glwe, bits_reserved_for_computation);
