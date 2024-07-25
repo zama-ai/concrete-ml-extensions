@@ -5,6 +5,7 @@ use tfhe::core_crypto::prelude::*;
 mod compression;
 mod computations;
 mod encryption;
+mod ml;
 
 fn main() {
     let encryption_glwe_dimension = GlweDimension(1);

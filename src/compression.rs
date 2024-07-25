@@ -90,13 +90,11 @@ impl<Scalar: UnsignedTorus> CompressedModulusSwitchedSeededGlweCiphertext<Scalar
 
         assert_eq!(container.len(), self.polynomial_size().0);
 
-        let seeded_glwe = SeededGlweCiphertextOwned::from_container(
+        SeededGlweCiphertextOwned::from_container(
             container,
             self.glwe_dimension().to_glwe_size(),
             self.compression_seed,
             self.uncompressed_ciphertext_modulus(),
-        );
-
-        seeded_glwe
+        )
     }
 }
