@@ -3,6 +3,10 @@ name = "deai-dot-products"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+name="deai"
+crate-type = ["cdylib"]
+
 [profile.release]
 lto = "fat"
 
@@ -21,6 +25,8 @@ debug-assertions = false
 rayon = "1"
 serde = { version = "1.0", features = ["derive"] }
 bincode = "1"
+pyo3 = { version = "0.21.0", features = ["extension-module"] }
+numpy = "0.21"
 
 [target.'cfg(target_arch = "x86_64")'.dependencies.tfhe]
 version = "0.7.2"
