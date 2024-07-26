@@ -53,6 +53,8 @@ impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
         vec
     }
 
+    // TODO have a dot_reversed, as this allocates memory, depending on data size it might be slow
+    // and inefficient
     pub fn dot(&self, other: &[Scalar]) -> EncryptedDotProductResult<Scalar> {
         assert_eq!(self.actual_len, other.len());
         let polynomial_size = self.data[0].polynomial_size();
