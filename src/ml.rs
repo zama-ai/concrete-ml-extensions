@@ -5,6 +5,12 @@ pub struct EncryptedDotProductResult<Scalar: UnsignedInteger> {
     data: LweCiphertextOwned<Scalar>,
 }
 
+impl<Scalar: UnsignedInteger> EncryptedDotProductResult<Scalar> {
+    pub fn as_lwe(&self) -> LweCiphertextView<'_, Scalar> {
+        self.data.as_view()
+    }
+}
+
 impl<Scalar: UnsignedTorus> EncryptedDotProductResult<Scalar> {
     pub fn decrypt<KeyCont: Container<Element = Scalar>>(
         &self,

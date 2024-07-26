@@ -101,6 +101,18 @@ impl<Scalar: UnsignedTorus> CompressedModulusSwitchedSeededGlweCiphertext<Scalar
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct CompressionKeyParameters<Scalar: UnsignedInteger> {
+    pub packing_ks_level: DecompositionLevelCount,
+    pub packing_ks_base_log: DecompositionBaseLog,
+    pub packing_ks_polynomial_size: PolynomialSize,
+    pub packing_ks_glwe_dimension: GlweDimension,
+    pub packing_ciphertext_modulus: CiphertextModulus<Scalar>,
+    pub lwe_per_glwe: LweCiphertextCount,
+    pub storage_log_modulus: CiphertextModulusLog,
+    pub packing_ks_key_noise_distribution: DynamicDistribution<Scalar>,
+}
+
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct CompressionKey<Scalar: UnsignedInteger> {
     pub packing_key_switching_key: LwePackingKeyswitchKeyOwned<Scalar>,
@@ -109,13 +121,49 @@ pub struct CompressionKey<Scalar: UnsignedInteger> {
 }
 
 impl<Scalar: UnsignedTorus + Sync + Send> CompressionKey<Scalar> {
-    pub fn compress_ciphertexts_into_list<InputCont>(
-        &self,
-        ciphertexts: &[LweCiphertext<InputCont>],
-    ) -> Vec<CompressedModulusSwitchedGlweCiphertext<Scalar>>
+    pub fn new<InputKeyCont>(
+        input_lwe_secret_key: &LweSecretKey<InputKeyCont>,
+        params: CompressionKeyParameters<Scalar>,
+    ) -> (GlweSecretKeyOwned<Scalar>, Self)
     where
-        InputCont: Container<Element = Scalar> + Sync,
+        InputKeyCont: Container<Element = Scalar>,
     {
+        let mut seeder = new_seeder();
+        let seeder = seeder.as_mut();
+
+        let mut secret_rng = SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
+        let mut encryption_rng =
+            EncryptionRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed(), seeder);
+
+        let post_packing_secret_key = allocate_and_generate_new_binary_glwe_secret_key(
+            params.packing_ks_glwe_dimension,
+            params.packing_ks_polynomial_size,
+            &mut secret_rng,
+        );
+
+        let packing_key_switching_key = allocate_and_generate_new_lwe_packing_keyswitch_key(
+            input_lwe_secret_key,
+            &post_packing_secret_key,
+            params.packing_ks_base_log,
+            params.packing_ks_level,
+            params.packing_ks_key_noise_distribution,
+            params.packing_ciphertext_modulus,
+            &mut encryption_rng,
+        );
+
+        let glwe_compression_key = CompressionKey {
+            packing_key_switching_key,
+            lwe_per_glwe: params.lwe_per_glwe,
+            storage_log_modulus: params.storage_log_modulus,
+        };
+
+        (post_packing_secret_key, glwe_compression_key)
+    }
+
+    pub fn compress_ciphertexts_into_list(
+        &self,
+        ciphertexts: &[crate::ml::EncryptedDotProductResult<Scalar>],
+    ) -> Vec<CompressedModulusSwitchedGlweCiphertext<Scalar>> {
         let lwe_pksk = &self.packing_key_switching_key;
 
         let polynomial_size = lwe_pksk.output_polynomial_size();
@@ -138,6 +186,7 @@ impl<Scalar: UnsignedTorus + Sync + Send> CompressionKey<Scalar> {
                 let mut list: Vec<_> = vec![];
 
                 for ct in ct_list {
+                    let ct = ct.as_lwe();
                     assert_eq!(
                         lwe_size,
                         ct.lwe_size(),
