@@ -1,0 +1,36 @@
+name: Python package
+
+on: [push]  # on push while debugging, will have to change it before merging
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8"] # We limit to 3.8 for now to limit time spent
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      # You can test your matrix by printing the current Python version
+      - name: Install dependencies
+        run: 
+          python -m pip install "poetry==1.8.3"
+
+          python -m poetry install --all-extras --no-root
+
+      - name: Build package
+        run: 
+          python -m poetry run maturin develop
+
+      - name: Run tests
+        run: 
+          python -m poetry run pytest ./tests/test.py -svv --capture=tee-sys --cache-clear
+
+

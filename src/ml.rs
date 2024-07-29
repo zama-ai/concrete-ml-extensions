@@ -27,6 +27,24 @@ pub struct EncryptedVector<Scalar: UnsignedInteger> {
     actual_len: usize,
 }
 
+// TODO: isn't there a way to do the mat-mult by overloading the scalar product
+pub struct MatrixShape {
+    x: usize,
+    y: usize,
+}
+
+pub struct ClearMatrix<Scalar: UnsignedInteger> {
+    // TODO: manage the data via a GlweCiphertextList
+    data: Vec<Vec<Scalar>>,
+    shape: MatrixShape,
+}
+
+pub struct EncryptedMatrix<Scalar: UnsignedInteger> {
+    // TODO: manage the data via a GlweCiphertextList
+    data: Vec<Vec<GlweCiphertextOwned<Scalar>>>,
+    shape: MatrixShape,
+}
+
 impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
     pub fn decrypt<KeyCont>(
         &self,

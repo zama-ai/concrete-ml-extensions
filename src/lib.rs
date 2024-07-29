@@ -1,5 +1,7 @@
 #![allow(clippy::excessive_precision)]
 
+// TODO: Implement something like Ix1 dimension handling for GLWECipherTexts
+
 use numpy::{Ix1, PyReadonlyArray};
 use pyo3::types::PyBytes;
 use serde::{Deserialize, Serialize};
@@ -209,7 +211,7 @@ fn decrypt(
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
 #[pymodule]
-fn deai(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Maybe we could put this in a loop?
     m.add_function(wrap_pyfunction!(create_private_key, m)?)?;
     m.add_function(wrap_pyfunction!(encrypt, m)?)?;

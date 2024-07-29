@@ -1,6 +1,6 @@
 import time
 
-import deai
+import concrete_ml_extensions as deai
 import numpy as np
 
 
@@ -23,7 +23,7 @@ class Timing:
         print(f"{self.message} done in {end - self.start} seconds")
 
 
-if __name__ == "__main__":
+def test_full_dot_product():
     # Setup
     vec_length = 10
     values = np.ones((vec_length,), dtype=np.uint32)
