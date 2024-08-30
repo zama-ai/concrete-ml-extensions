@@ -1,6 +1,6 @@
 name: Python package
 
-on: [push]  # on push while debugging, will have to change it before merging
+on: [pull_request]
 
 env:
   CARGO_TERM_COLOR: always

@@ -63,6 +63,3 @@ def test_full_dot_product():
          {np.dot(values, other_values)=},
         """
     )
-
-if __name__ == "__main__":
-    test_full_dot_product()

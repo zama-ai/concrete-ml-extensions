@@ -57,3 +57,7 @@ pcc: check_fmt clippy_all_targets
 .PHONY: help # Generate list of targets with descriptions
 help:
 	@grep '^\.PHONY: .* #' Makefile | sed 's/\.PHONY: \(.*\) # \(.*\)/\1\t\2/' | expand -t30 | sort
+
+.PHONY: pytest
+pytest:
+	poetry run pytest ./tests/test.py -svv --capture=tee-sys --cache-clear
