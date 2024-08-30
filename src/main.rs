@@ -9,6 +9,7 @@ mod ml;
 
 fn main() {
     type Scalar = u32;
+
     let encryption_glwe_dimension = GlweDimension(1);
     let polynomial_size = PolynomialSize(2048);
     let ciphertext_modulus_bit_count = 31usize;
@@ -27,6 +28,7 @@ fn main() {
         .map(|x| x as Scalar % 2)
         .collect();
 
+    // This could be a method to generate a private key object
     let mut seeder = new_seeder();
     let seeder = seeder.as_mut();
     let mut secret_rng = SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
@@ -55,6 +57,7 @@ fn main() {
     let (post_compression_glwe_secret_key, compression_key) =
         compression::CompressionKey::new(&glwe_secret_key_as_lwe_secret_key, compression_params);
 
+    // This would be a method to encrypt a numpy array using a private key object
     let seeded_encrypted_vector = ml::SeededCompressedEncryptedVector::new(
         &data,
         &glwe_secret_key,
@@ -65,13 +68,16 @@ fn main() {
         seeder,
     );
 
+    // A method to serialize a ciphertext (and compress it?)
     let serialized = bincode::serialize(&seeded_encrypted_vector).unwrap();
 
+    // A method to deserialize a ciphertext
     let deserialized: ml::SeededCompressedEncryptedVector<Scalar> =
         bincode::deserialize(&serialized).unwrap();
 
     let encrypted_vector = deserialized.decompress();
 
+    // A method to decrypt a ciphertext
     let decrypted = encrypted_vector.decrypt(&glwe_secret_key, bits_reserved_for_computation);
 
     assert_eq!(&decrypted, &data);

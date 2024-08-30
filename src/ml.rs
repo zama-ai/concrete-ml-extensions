@@ -22,9 +22,24 @@ impl<Scalar: UnsignedTorus> EncryptedDotProductResult<Scalar> {
 }
 
 pub struct EncryptedVector<Scalar: UnsignedInteger> {
-    // TODO: manage the data via a GlweCiphertextList
     data: Vec<GlweCiphertextOwned<Scalar>>,
     actual_len: usize,
+}
+
+// TODO: isn't there a way to do the mat-mult by overloading the scalar product
+pub struct MatrixShape {
+    x: usize,
+    y: usize,
+}
+
+pub struct ClearMatrix<Scalar: UnsignedInteger> {
+    data: Vec<Vec<Scalar>>,
+    shape: MatrixShape,
+}
+
+pub struct EncryptedMatrix<Scalar: UnsignedInteger> {
+    data: Vec<Vec<GlweCiphertextOwned<Scalar>>>,
+    shape: MatrixShape,
 }
 
 impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
@@ -86,7 +101,6 @@ impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct SeededCompressedEncryptedVector<Scalar: UnsignedInteger> {
-    // TODO: manage the data via a GlweCiphertextList
     data: Vec<crate::compression::CompressedModulusSwitchedSeededGlweCiphertext<Scalar>>,
     actual_len: usize,
 }
