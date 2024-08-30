@@ -3,8 +3,10 @@
 // TODO: Implement something like Ix1 dimension handling for GLWECipherTexts
 
 use numpy::{Ix1, PyReadonlyArray};
-use pyo3::types::PyBytes;
+use pyo3::exceptions::PyValueError;
+use pyo3::types::{PyBytes, PyNone, PyString};
 use serde::{Deserialize, Serialize};
+use serde_json::Result;
 use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
 
@@ -31,6 +33,36 @@ impl PrivateKey {
     fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<PrivateKey> {
         let deserialized: PrivateKey = bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
         return Ok(deserialized);
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+#[pyclass]
+struct MatmulCryptoParameters {
+    bits_reserved_for_computation: usize,
+    glwe_encryption_noise_distribution_stdev: f64,
+    encryption_glwe_dimension: GlweDimension,
+    polynomial_size: PolynomialSize,
+    ciphertext_modulus_bit_count: usize,
+}
+#[pymethods]
+impl MatmulCryptoParameters {
+    fn serialize(&self, py: Python) -> PyResult<Py<PyString>> {
+        return match serde_json::to_string(&self) {
+            Ok(json_str) => Ok(PyString::new_bound(py, &json_str).into()),
+            Err(error) => Err(PyValueError::new_err(format!(
+                "Can not serialize crypto-parameters {error}"
+            ))),
+        };
+    }
+    #[staticmethod]
+    fn deserialize(content: &Bound<'_, PyString>) -> PyResult<MatmulCryptoParameters> {
+        return match serde_json::from_str(&content.to_str().unwrap()) {
+            Ok(p) => Ok(p),
+            Err(error) => Err(PyValueError::new_err(format!(
+                "Can not deserialize cryptoparameters {error}"
+            ))),
+        };
     }
 }
 
@@ -91,14 +123,12 @@ impl CompressedResultCipherText {
 }
 
 #[pyfunction]
-fn create_private_key() -> PyResult<(PrivateKey, CompressionKey)> {
-    let encryption_glwe_dimension = GlweDimension(1);
-    let polynomial_size = PolynomialSize(2048);
-    let ciphertext_modulus_bit_count = 31usize;
-
+fn create_private_key(
+    crypto_params: &MatmulCryptoParameters,
+) -> PyResult<(PrivateKey, CompressionKey)> {
     let ciphertext_modulus: CiphertextModulus<u32> =
-        CiphertextModulus::try_new_power_of_2(ciphertext_modulus_bit_count).unwrap();
-    let mod_switch_bit_count = ciphertext_modulus_bit_count - 1;
+        CiphertextModulus::try_new_power_of_2(crypto_params.ciphertext_modulus_bit_count).unwrap();
+    let mod_switch_bit_count = crypto_params.ciphertext_modulus_bit_count - 1;
 
     // This could be a method to generate a private key object
     let mut seeder = new_seeder();
@@ -114,12 +144,14 @@ fn create_private_key() -> PyResult<(PrivateKey, CompressionKey)> {
         packing_ciphertext_modulus: ciphertext_modulus,
         storage_log_modulus: CiphertextModulusLog(mod_switch_bit_count),
         packing_ks_key_noise_distribution: DynamicDistribution::new_gaussian_from_std_dev(
-            StandardDev(2.0f64.powi(2) / 2.0f64.powi(ciphertext_modulus_bit_count as i32)),
+            StandardDev(
+                2.0f64.powi(2) / 2.0f64.powi(crypto_params.ciphertext_modulus_bit_count as i32),
+            ),
         ),
     };
-    let glwe_secret_key = allocate_and_generate_new_binary_glwe_secret_key(
-        encryption_glwe_dimension,
-        polynomial_size,
+    let glwe_secret_key: GlweSecretKey<Vec<u32>> = allocate_and_generate_new_binary_glwe_secret_key(
+        crypto_params.encryption_glwe_dimension,
+        crypto_params.polynomial_size,
         &mut secret_rng,
     );
     let glwe_secret_key_as_lwe_secret_key = glwe_secret_key.as_lwe_secret_key();
@@ -137,26 +169,29 @@ fn create_private_key() -> PyResult<(PrivateKey, CompressionKey)> {
 }
 
 #[pyfunction]
-fn encrypt(pkey: &PrivateKey, data: PyReadonlyArray<u32, Ix1>) -> PyResult<CipherText> {
+fn encrypt(
+    pkey: &PrivateKey,
+    crypto_params: &MatmulCryptoParameters,
+    data: PyReadonlyArray<u32, Ix1>,
+) -> PyResult<CipherText> {
     // Find a better way to use the constants
     // TODO: For now very small noise, find secure noise
     let mut seeder = new_seeder();
     let seeder = seeder.as_mut();
-    let ciphertext_modulus_bit_count = 31usize;
-    let mod_switch_bit_count = ciphertext_modulus_bit_count - 1;
+
+    let mod_switch_bit_count = crypto_params.ciphertext_modulus_bit_count - 1;
     let mod_switch_modulus = CiphertextModulusLog(mod_switch_bit_count);
-    let bits_reserved_for_computation = 12;
-    let ciphertext_modulus_bit_count = 31usize;
+
     let ciphertext_modulus: CiphertextModulus<u32> =
-        CiphertextModulus::try_new_power_of_2(ciphertext_modulus_bit_count).unwrap();
+        CiphertextModulus::try_new_power_of_2(crypto_params.ciphertext_modulus_bit_count).unwrap();
     let glwe_encryption_noise_distribution: prelude::DynamicDistribution<u32> =
         DynamicDistribution::new_gaussian_from_std_dev(StandardDev(
-            2.0f64.powi(2) / 2.0f64.powi(ciphertext_modulus_bit_count as i32),
+            2.0f64.powi(2) / 2.0f64.powi(crypto_params.ciphertext_modulus_bit_count as i32),
         ));
     let seeded_encrypted_vector = ml::SeededCompressedEncryptedVector::new(
         &data.as_array().as_slice().unwrap(),
         &pkey.inner,
-        bits_reserved_for_computation,
+        crypto_params.bits_reserved_for_computation,
         mod_switch_modulus,
         glwe_encryption_noise_distribution,
         ciphertext_modulus,
@@ -220,6 +255,7 @@ fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<CipherText>()?;
     m.add_class::<CompressedResultCipherText>()?;
     m.add_class::<CompressionKey>()?;
+    m.add_class::<MatmulCryptoParameters>()?;
     // m.add_class::<PrivateKey>()?;
     Ok(())
 }

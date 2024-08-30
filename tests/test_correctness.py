@@ -2,6 +2,16 @@ import pytest
 import concrete_ml_extensions as deai
 import numpy as np
 
+# 2.0f64.powi(2) / 2.0f64.powi(crypto_params.ciphertext_modulus_bit_count as i32)
+# STDEV_8B_2048 = 1 / (2.0 ** 29)
+PARAMS_8B_2048 = """{
+        "bits_reserved_for_computation": 12,
+        "glwe_encryption_noise_distribution_stdev": 0.000000002,
+        "encryption_glwe_dimension": 1,
+        "polynomial_size": 2048,
+        "ciphertext_modulus_bit_count": 31
+    }"""
+
 @pytest.mark.parametrize("n_bits", [2, 6, 8, 12])
 @pytest.mark.parametrize("inner_size", [256, 1024, 2048, 14336])
 @pytest.mark.parametrize("signed", [True, False])
@@ -15,8 +25,9 @@ def test_correctness(n_bits, inner_size, signed):
 
     reference = np.dot(a,b)
 
-    pkey, ckey = deai.create_private_key()
-    ciphertext_a = deai.encrypt(pkey, a)
+    crypto_params = deai.MatmulCryptoParameters.deserialize(PARAMS_8B_2048)
+    pkey, ckey = deai.create_private_key(crypto_params)
+    ciphertext_a = deai.encrypt(pkey, crypto_params, a)
 
     # Compress and serialize, then decompress    
     serialized_ciphertext = ciphertext_a.serialize()
