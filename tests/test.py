@@ -25,7 +25,7 @@ class Timing:
 
 def test_full_dot_product():
     # Setup
-    vec_length = 10
+    vec_length = 2048
     values = np.ones((vec_length,), dtype=np.uint32)
     other_values = np.arange(vec_length, dtype=np.uint32)
 
@@ -63,3 +63,6 @@ def test_full_dot_product():
          {np.dot(values, other_values)=},
         """
     )
+
+if __name__ == "__main__":
+    test_full_dot_product()
