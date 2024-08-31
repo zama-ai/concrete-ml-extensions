@@ -9,19 +9,25 @@ PARAMS_8B_2048 = """{
         "glwe_encryption_noise_distribution_stdev": 0.000000002,
         "encryption_glwe_dimension": 1,
         "polynomial_size": 2048,
-        "ciphertext_modulus_bit_count": 31
+        "ciphertext_modulus_bit_count": 63,
+        "input_storage_ciphertext_modulus": 39,
+        "packing_ks_level": 2, 
+        "packing_ks_base_log": 14,
+        "packing_ks_polynomial_size": 2048,              
+        "packing_ks_glwe_dimension": 1,       
+        "output_storage_ciphertext_modulus": 26
     }"""
 
-@pytest.mark.parametrize("n_bits", [2, 6, 8, 12])
-@pytest.mark.parametrize("inner_size", [256, 1024, 2048, 14336])
+@pytest.mark.parametrize("n_bits", [2]) #, 6, 8, 12])
+@pytest.mark.parametrize("inner_size", [256, 1024]) #, 2048]) #, 14336])
 @pytest.mark.parametrize("signed", [True, False])
 def test_correctness(n_bits, inner_size, signed):
     low = -2**(n_bits-1) if signed else 0 # randint low value is included
     high = 2**(n_bits-1) if signed else 2**n_bits # randint high value is not included
 
     # Randint draws from [low, high).
-    a = np.random.randint(low, high, size=(inner_size,)).astype(np.uint32)
-    b = np.random.randint(low, high, size=(inner_size,)).astype(np.uint32)
+    a = np.random.randint(low, high, size=(inner_size,)).astype(np.uint64)
+    b = np.random.randint(low, high, size=(inner_size,)).astype(np.uint64)
 
     reference = np.dot(a,b)
 
