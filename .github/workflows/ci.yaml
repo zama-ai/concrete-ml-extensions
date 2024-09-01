@@ -27,7 +27,7 @@ jobs:
 
       - name: Build package
         run: 
-          python -m poetry run maturin develop
+          python -m poetry run maturin develop --release
 
       - name: Run tests
         run: 
