@@ -5,7 +5,7 @@ import numpy as np
 # 2.0f64.powi(2) / 2.0f64.powi(crypto_params.ciphertext_modulus_bit_count as i32)
 # STDEV_8B_2048 = 1 / (2.0 ** 29)
 PARAMS_8B_2048 = """{
-        "bits_reserved_for_computation": 12,
+        "bits_reserved_for_computation": 20,
         "glwe_encryption_noise_distribution_stdev": 0.000000002,
         "encryption_glwe_dimension": 1,
         "polynomial_size": 2048,

@@ -33,7 +33,7 @@ impl<Scalar: UnsignedTorus> CompressedModulusSwitchedSeededGlweCiphertext<Scalar
         ct: &SeededGlweCiphertext<Cont>,
         log_modulus: CiphertextModulusLog,
     ) -> Self {
-        let uncompressed_ciphertext_modulus = ct.ciphertext_modulus();
+        let uncompressed_ciphertext_modulus: CiphertextModulus<Scalar> = ct.ciphertext_modulus();
 
         assert!(
             ct.ciphertext_modulus().is_power_of_two(),
@@ -42,8 +42,10 @@ impl<Scalar: UnsignedTorus> CompressedModulusSwitchedSeededGlweCiphertext<Scalar
 
         let uncompressed_ciphertext_modulus_log =
             if uncompressed_ciphertext_modulus.is_native_modulus() {
+                println!("Input compression input modulus is native");
                 Scalar::BITS
             } else {
+                println!("Input compression input modulus is not native");
                 uncompressed_ciphertext_modulus.get_custom_modulus().ilog2() as usize
             };
 

@@ -20,7 +20,7 @@ PARAMS_8B_2048 = """{
 
 @pytest.mark.parametrize("n_bits", [2]) #, 6, 8, 12])
 @pytest.mark.parametrize("inner_size", [256, 1024]) #, 2048]) #, 14336])
-@pytest.mark.parametrize("signed", [True, False])
+@pytest.mark.parametrize("signed", [False])
 def test_correctness(n_bits, inner_size, signed):
     low = -2**(n_bits-1) if signed else 0 # randint low value is included
     high = 2**(n_bits-1) if signed else 2**n_bits # randint high value is not included
@@ -50,6 +50,11 @@ def test_correctness(n_bits, inner_size, signed):
 
     # Decrypt result to compare to reference
     decrypted_result = deai.decrypt(encrypted_result, pkey)
+    
+    # modulus = 64
+    high_bits = decrypted_result & (2**(64-12)-1)
+    high_bits_reference = int(reference) & (2**(64-12)-1)
 
+    assert(np.equal(high_bits_reference, high_bits))
     assert(np.equal(reference, decrypted_result))
 

@@ -3,6 +3,19 @@ import time
 import concrete_ml_extensions as deai
 import numpy as np
 
+PARAMS_8B_2048 = """{
+        "bits_reserved_for_computation": 12,
+        "glwe_encryption_noise_distribution_stdev": 0.000000002,
+        "encryption_glwe_dimension": 1,
+        "polynomial_size": 2048,
+        "ciphertext_modulus_bit_count": 63,
+        "input_storage_ciphertext_modulus": 39,
+        "packing_ks_level": 2, 
+        "packing_ks_base_log": 14,
+        "packing_ks_polynomial_size": 2048,              
+        "packing_ks_glwe_dimension": 1,       
+        "output_storage_ciphertext_modulus": 26
+    }"""
 
 class Timing:
     def __init__(self, message=""):
@@ -26,18 +39,20 @@ class Timing:
 def test_full_dot_product():
     # Setup
     vec_length = 2048
-    values = np.ones((vec_length,), dtype=np.uint32)
-    other_values = np.arange(vec_length, dtype=np.uint32)
+    values = np.ones((vec_length,), dtype=np.uint64)
+    other_values = np.arange(vec_length, dtype=np.uint64)
+
+    crypto_params = deai.MatmulCryptoParameters.deserialize(PARAMS_8B_2048)
 
     # Running everything with timings
     with Timing("keygen"):
-        pkey, ckey = deai.create_private_key()
+        pkey, ckey = deai.create_private_key(crypto_params)
     with Timing("serialization compression key"):
         serialized_compression_key = ckey.serialize()
     with Timing("serialization compression key"):
         compression_key = deai.CompressionKey.deserialize(serialized_compression_key)
     with Timing("encryption"):
-        ciphertext = deai.encrypt(pkey, values)
+        ciphertext = deai.encrypt(pkey, crypto_params, values)
     with Timing("input serialization"):
         serialized_ciphertext = ciphertext.serialize()
     with Timing("input deserialization"):

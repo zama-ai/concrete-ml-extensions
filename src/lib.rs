@@ -197,11 +197,10 @@ fn encrypt(
     let mut seeder = new_seeder();
     let seeder = seeder.as_mut();
 
-    //    let mod_switch_bit_count = crypto_params.ciphertext_modulus_bit_count - 1;
-    //    let mod_switch_modulus = CiphertextModulusLog(mod_switch_bit_count);
-
     let ciphertext_modulus: CiphertextModulus<Scalar> =
         CiphertextModulus::try_new_power_of_2(crypto_params.ciphertext_modulus_bit_count).unwrap();
+
+    println!("CT mod {ciphertext_modulus}");
 
     let glwe_encryption_noise_distribution: prelude::DynamicDistribution<Scalar> =
         DynamicDistribution::new_gaussian_from_std_dev(StandardDev(
