@@ -27,10 +27,13 @@ jobs:
 
       - name: Build package
         run: 
-          python -m poetry run maturin develop
+          python -m poetry run maturin develop --release
 
       - name: Run tests
         run: 
-          python -m poetry run pytest ./tests/test.py -svv --capture=tee-sys --cache-clear
+          make pytest
 
+      - name: Run benchmark
+        run: 
+          python -m poetry run pytest ./tests/test.py -svv --capture=tee-sys --cache-clear
 

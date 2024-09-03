@@ -8,7 +8,7 @@ mod encryption;
 mod ml;
 
 fn main() {
-    type Scalar = u32;
+    type Scalar = u64;
 
     let encryption_glwe_dimension = GlweDimension(1);
     let polynomial_size = PolynomialSize(2048);

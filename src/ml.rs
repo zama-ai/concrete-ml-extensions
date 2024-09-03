@@ -1,6 +1,7 @@
 use tfhe::core_crypto::commons::math::random::{Distribution, Uniform};
 use tfhe::core_crypto::prelude::*;
 
+#[derive(Clone)]
 pub struct EncryptedDotProductResult<Scalar: UnsignedInteger> {
     data: LweCiphertextOwned<Scalar>,
 }
@@ -101,7 +102,7 @@ impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct SeededCompressedEncryptedVector<Scalar: UnsignedInteger> {
-    data: Vec<crate::compression::CompressedModulusSwitchedSeededGlweCiphertext<Scalar>>,
+    pub data: Vec<crate::compression::CompressedModulusSwitchedSeededGlweCiphertext<Scalar>>,
     actual_len: usize,
 }
 
@@ -123,13 +124,19 @@ impl<Scalar: UnsignedTorus> SeededCompressedEncryptedVector<Scalar> {
     {
         let actual_len = input.len();
         let polynomial_size = glwe_secret_key.polynomial_size().0;
+
+        // Break input vector in chunks of polynomial size
+        // If the last chunk does not fit into the polynomial size
+        // it will be padded with zeros
         let glwes = input
             .chunks(polynomial_size)
             .map(|input| {
                 let tmp_input: Vec<_>;
                 let input = if input.len() == polynomial_size {
+                    //The chunk has the same size as the poly size
                     input
                 } else {
+                    // Padding with zeros if needed
                     tmp_input = input
                         .iter()
                         .copied()

@@ -60,4 +60,4 @@ help:
 
 .PHONY: pytest
 pytest:
-	poetry run pytest ./tests/test.py -svv --capture=tee-sys --cache-clear
+	poetry run pytest ./tests -svv --capture=tee-sys --cache-clear

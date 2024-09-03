@@ -33,7 +33,7 @@ impl<Scalar: UnsignedTorus> CompressedModulusSwitchedSeededGlweCiphertext<Scalar
         ct: &SeededGlweCiphertext<Cont>,
         log_modulus: CiphertextModulusLog,
     ) -> Self {
-        let uncompressed_ciphertext_modulus = ct.ciphertext_modulus();
+        let uncompressed_ciphertext_modulus: CiphertextModulus<Scalar> = ct.ciphertext_modulus();
 
         assert!(
             ct.ciphertext_modulus().is_power_of_two(),
@@ -167,7 +167,7 @@ impl<Scalar: UnsignedTorus + Sync + Send> CompressionKey<Scalar> {
         let lwe_pksk = &self.packing_key_switching_key;
 
         let polynomial_size = lwe_pksk.output_polynomial_size();
-        let ciphertext_modulus = lwe_pksk.ciphertext_modulus();
+        let ciphertext_modulus: CiphertextModulus<Scalar> = lwe_pksk.ciphertext_modulus();
         let glwe_size = lwe_pksk.output_glwe_size();
         let lwe_size = lwe_pksk.input_key_lwe_dimension().to_lwe_size();
 
