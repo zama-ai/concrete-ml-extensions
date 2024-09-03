@@ -35,5 +35,5 @@ jobs:
 
       - name: Run benchmark
         run: 
-          python -m poetry run tests/test.py
+          python -m poetry run pytest ./tests/test.py -svv --capture=tee-sys --cache-clear
 
