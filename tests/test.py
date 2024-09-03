@@ -78,3 +78,4 @@ def test_full_dot_product():
          {np.dot(values, other_values)=},
         """
     )
+

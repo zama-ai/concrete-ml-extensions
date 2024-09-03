@@ -31,7 +31,8 @@ def test_crypto_params_load():
         "packing_ks_base_log": 14,
         "packing_ks_polynomial_size": 2048,              
         "packing_ks_glwe_dimension": 1,       
-        "output_storage_ciphertext_modulus": 26
+        "output_storage_ciphertext_modulus": 26,
+        "pks_noise_distrubution_stdev": 0
     }"""
 
     deai.MatmulCryptoParameters.deserialize(json_str)
@@ -49,7 +50,8 @@ def test_crypto_params_save():
         "packing_ks_base_log": 14,
         "packing_ks_polynomial_size": 2048,              
         "packing_ks_glwe_dimension": 1,       
-        "output_storage_ciphertext_modulus": 26
+        "output_storage_ciphertext_modulus": 26,
+        "pks_noise_distrubution_stdev": 0        
     }"""
 
     params_json = json.loads(json_str)

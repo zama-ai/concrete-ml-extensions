@@ -1,6 +1,7 @@
 use tfhe::core_crypto::commons::math::random::{Distribution, Uniform};
 use tfhe::core_crypto::prelude::*;
 
+#[derive(Clone)]
 pub struct EncryptedDotProductResult<Scalar: UnsignedInteger> {
     data: LweCiphertextOwned<Scalar>,
 }
@@ -101,7 +102,7 @@ impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct SeededCompressedEncryptedVector<Scalar: UnsignedInteger> {
-    data: Vec<crate::compression::CompressedModulusSwitchedSeededGlweCiphertext<Scalar>>,
+    pub data: Vec<crate::compression::CompressedModulusSwitchedSeededGlweCiphertext<Scalar>>,
     actual_len: usize,
 }
 
