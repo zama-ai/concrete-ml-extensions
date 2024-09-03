@@ -35,5 +35,5 @@ jobs:
 
       - name: Run benchmark
         run: 
-          python tests/test.py
+          python -m poetry run tests/test.py
 
