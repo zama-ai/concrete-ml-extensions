@@ -33,4 +33,7 @@ jobs:
         run: 
           make pytest
 
+      - name: Run benchmark
+        run: 
+          python tests/test.py
 
