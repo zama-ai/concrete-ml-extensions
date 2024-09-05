@@ -37,18 +37,25 @@ PARAMS_NONOISE_8B_2048 = {
 
 @pytest.mark.parametrize("n_bits", [2, 6, 8])
 @pytest.mark.parametrize("inner_size", [256, 1024, 2048, 14336])
-@pytest.mark.parametrize("signed", [False])
+@pytest.mark.parametrize("signed", [False]) #, True])
 def test_correctness(n_bits, inner_size, signed):
     low = -2**(n_bits-1) if signed else 0 # randint low value is included
     high = 2**(n_bits-1) if signed else 2**n_bits # randint high value is not included
 
     # Randint draws from [low, high).
-    a = np.random.randint(low, high, size=(inner_size,)).astype(np.uint64)
-    b = np.random.randint(low, high, size=(inner_size,)).astype(np.uint64)
+    if signed:
+        a = np.random.randint(low, 0, size=(inner_size,), dtype=np.int64)
+        b = np.random.randint(0, high, size=(inner_size,), dtype=np.int64)
+    else:
+        a = np.random.randint(low, high, size=(inner_size,), dtype=np.int64)
+        b = np.random.randint(low, high, size=(inner_size,), dtype=np.int64)
 
     reference = np.dot(a,b)
 
-    n_bits_compute = int(np.log2(reference)) + 1
+    a = a.astype(np.uint64)
+    b = b.astype(np.uint64)
+
+    n_bits_compute = int(np.log2(np.abs(reference))) + 1
     params = PARAMS_8B_2048
     params["bits_reserved_for_computation"] = n_bits_compute
 
@@ -74,8 +81,9 @@ def test_correctness(n_bits, inner_size, signed):
     decrypted_result = deai.decrypt(encrypted_result, pkey, crypto_params)
         
     
+    sign_bit = 1 if reference < 0 else 0
     msbs_to_check = 12 if n_bits_compute > 12 else n_bits_compute
-    mask = ((2**n_bits_compute) - 1) - (2**(msbs_to_check) - 1)
+    mask = ((2**(n_bits_compute + sign_bit)) - 1) - (2**(n_bits_compute - msbs_to_check) - 1)
     high_bits = decrypted_result & mask
     high_bits_reference = int(reference) & mask
 

@@ -159,7 +159,6 @@ where
         DecompositionLevelCount(1),
     );
 
-    // Why the modulo ?
     for (decoded_value, decrypted_value) in decoded.iter_mut().zip(decrypted.iter()) {
         *decoded_value = (decomposer.closest_representable(*decrypted_value.0) / delta)
             % (Scalar::ONE << bits_reserved_for_computation);
