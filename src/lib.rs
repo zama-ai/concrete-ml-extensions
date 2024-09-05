@@ -395,7 +395,7 @@ fn decrypt_matrix(
 }
 
 static PARAMS_8B_2048: &str = r#"{
-    "bits_reserved_for_computation": 20,
+    "bits_reserved_for_computation": 27,
     "glwe_encryption_noise_distribution_stdev": 5.293956729894075e-23,
     "encryption_glwe_dimension": 1,
     "polynomial_size": 2048,
