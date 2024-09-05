@@ -220,10 +220,11 @@ fn dot_product(
     data: PyReadonlyArray<Scalar, Ix1>,
     compression_key: &CompressionKey,
 ) -> PyResult<CompressedResultCipherText> {
+
     let result: crate::ml::EncryptedDotProductResult<Scalar> = ciphertext
-        .inner
-        .decompress()
-        .dot(data.as_array().as_slice().unwrap());
+    .inner
+    .decompress()
+    .dot(data.as_array().as_slice().unwrap());
 
     let mut result_list = Vec::<EncryptedDotProductResult<Scalar>>::new();
     for k in 0..compression_key
