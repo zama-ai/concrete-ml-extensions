@@ -394,6 +394,25 @@ fn decrypt_matrix(
     })
 }
 
+static PARAMS_8B_2048: &str = r#"{
+    "bits_reserved_for_computation": 20,
+    "glwe_encryption_noise_distribution_stdev": 5.293956729894075e-23,
+    "encryption_glwe_dimension": 1,
+    "polynomial_size": 2048,
+    "ciphertext_modulus_bit_count": 64,
+    "input_storage_ciphertext_modulus": 39,
+    "packing_ks_level": 2, 
+    "packing_ks_base_log": 14,
+    "packing_ks_polynomial_size": 2048,              
+    "packing_ks_glwe_dimension": 1,       
+    "output_storage_ciphertext_modulus": 26,
+    "pks_noise_distrubution_stdev": 8.095547030480235e-30
+}"#;
+
+#[pyfunction]
+fn default_params() -> String {
+    PARAMS_8B_2048.to_string()
+}
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
@@ -407,6 +426,7 @@ fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(encrypt_matrix, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt_matrix, m)?)?;
     m.add_function(wrap_pyfunction!(matrix_multiplication, m)?)?;
+    m.add_function(wrap_pyfunction!(default_params, m)?)?;
     m.add_class::<CipherText>()?;
     m.add_class::<CompressedResultCipherText>()?;
     m.add_class::<CompressionKey>()?;

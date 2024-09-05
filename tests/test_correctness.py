@@ -3,7 +3,6 @@ import concrete_ml_extensions as deai
 import numpy as np
 import json
 
-
 @pytest.mark.parametrize("n_bits", [2, 6, 8])
 @pytest.mark.parametrize("dims", [1, 2])
 @pytest.mark.parametrize("inner_size", [256, 1024, 2048, 4096])
@@ -44,7 +43,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     # Change the encoding to push the inputs and the result
     # as much as possible to the left in the MSBs
     # in order to avoid noise corruption
-    params = json.loads(crypto_params.serialize())
+    params = json.loads(deai.default_params()) #crypto_params.serialize())
     params["bits_reserved_for_computation"] = (
         n_bits_compute + 1
     )  # +1 for sign bit if needed
