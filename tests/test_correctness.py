@@ -78,7 +78,7 @@ def test_correctness(n_bits, inner_size, signed):
     )
 
     # Decrypt result to compare to reference
-    decrypted_result = deai.decrypt(encrypted_result, pkey, crypto_params)
+    decrypted_result = deai.decrypt(encrypted_result, pkey, crypto_params, packed_glwe_values=1)[0]
         
     
     sign_bit = 1 if reference < 0 else 0
