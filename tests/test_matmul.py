@@ -1,49 +1,16 @@
 import time
-
 import concrete_ml_extensions as deai
 import numpy as np
+import pytest
+from conftest import Timing, PARAMS_8B_2048
 
-PARAMS_8B_2048 = """{
-        "bits_reserved_for_computation": 26,
-        "glwe_encryption_noise_distribution_stdev": 5.293956729894075e-23,
-        "encryption_glwe_dimension": 1,
-        "polynomial_size": 2048,
-        "ciphertext_modulus_bit_count": 64,
-        "input_storage_ciphertext_modulus": 39,
-        "packing_ks_level": 2, 
-        "packing_ks_base_log": 14,
-        "packing_ks_polynomial_size": 2048,              
-        "packing_ks_glwe_dimension": 1,       
-        "output_storage_ciphertext_modulus": 26,
-        "pks_noise_distrubution_stdev": 8.095547030480235e-30
-    }"""
-
-class Timing:
-    def __init__(self, message=""):
-        self.message = message
-
-    def __enter__(
-        self,
-    ):
-        print(f"Starting {self.message}")
-        self.start = time.time()
-
-    def __exit__(
-        self,
-        *args,
-        **kwargs,
-    ):
-        end = time.time()
-        print(f"{self.message} done in {end - self.start} seconds")
-
-
-def test_full_dot_product():
+@pytest.mark.parametrize("size", [128, 512, 2048, 4096, 8192])
+def test_full_dot_product(size, crypto_params):
     # Setup
-    vec_length = 2048
+    vec_length = size
+    num_valid_glwe_values_in_last_ciphertext = size % 2048
     values = np.ones((vec_length,), dtype=np.uint64)
     other_values = np.arange(vec_length, dtype=np.uint64)
-
-    crypto_params = deai.MatmulCryptoParameters.deserialize(PARAMS_8B_2048)
 
     # Running everything with timings
     with Timing("keygen"):
@@ -67,7 +34,7 @@ def test_full_dot_product():
             serialized_encrypted_result
         )
     with Timing("decryption"):
-        decrypted_result = deai.decrypt(encrypted_result, pkey, crypto_params, packed_glwe_values=1)
+        decrypted_result = deai.decrypt(encrypted_result, pkey, crypto_params, num_valid_glwe_values_in_last_ciphertext=1)
 
     print(
         f"""
@@ -80,17 +47,15 @@ def test_full_dot_product():
         """
     )
 
-
-def test_matrix_multiplication():
-    # Setup
-    size = 2049
-    packed_glwe_values = size % 2048
+@pytest.mark.parametrize("size", [512, 1024, 2048, 4096])
+def test_matrix_multiplication(size, crypto_params):
+    # The number of valid GLWE values in the last ciphertext is the size of the matrix
+    # or 2048 if the size is a multiple of 2048
+    num_valid_glwe_values_in_last_ciphertext = size % 2048 or 2048
 
     matrix_shape = (1, size)
     values = np.random.randint(0, 2**8, size=matrix_shape, dtype=np.uint64)
     other_matrix = np.random.randint(0, 2**8, size=(size, size), dtype=np.uint64)
-
-    crypto_params = deai.MatmulCryptoParameters.deserialize(PARAMS_8B_2048)
 
     # Running everything with timings
     with Timing("keygen"):
@@ -109,7 +74,7 @@ def test_matrix_multiplication():
 
     with Timing("decryption"):
         decrypted_result = deai.decrypt_matrix(
-            matmul_result, pkey, crypto_params, packed_glwe_values=packed_glwe_values
+            matmul_result, pkey, crypto_params, num_valid_glwe_values_in_last_ciphertext=num_valid_glwe_values_in_last_ciphertext
         )
 
     print("Matrix multiplication encryption test passed")
@@ -124,8 +89,8 @@ def test_matrix_multiplication():
     ), "Decrypted matrix shape mismatch"
 
     # Extract the 12 MSB from both results
-    msb_decrypted = decrypted_result >> (26 - 12)
-    msb_expected = expected_result >> (26 - 12)
+    msb_decrypted = decrypted_result >> (PARAMS_8B_2048["bits_reserved_for_computation"] - 12)
+    msb_expected = expected_result >> (PARAMS_8B_2048["bits_reserved_for_computation"] - 12)
 
     print(msb_decrypted)
     print(msb_expected)
@@ -135,7 +100,6 @@ def test_matrix_multiplication():
         "The 12 MSB of the decrypted matrix do not match the expected result",
     )
     print("Encrypted matrix multiplication matches the original numpy dot product for the 12 MSB")
-
 
 if __name__ == "__main__":
     test_full_dot_product()

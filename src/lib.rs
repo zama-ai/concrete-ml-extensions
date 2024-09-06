@@ -218,7 +218,7 @@ fn internal_decrypt(
     compressed_result: &CompressedResultCipherText,
     crypto_params: &MatmulCryptoParameters,
     private_key: &PrivateKey,
-    packed_glwe_values: usize,
+    num_valid_glwe_values_in_last_ciphertext: usize,
 ) -> PyResult<Vec<Scalar>> {
     let mut decrypted_result = Vec::new();
     let last_index = compressed_result.inner.len() - 1;
@@ -232,7 +232,7 @@ fn internal_decrypt(
         );
 
         if index == last_index {
-            decrypted_result.extend(decrypted_dot.into_iter().take(packed_glwe_values));
+            decrypted_result.extend(decrypted_dot.into_iter().take(num_valid_glwe_values_in_last_ciphertext));
         } else {
             decrypted_result.extend(decrypted_dot);
         }
@@ -342,13 +342,13 @@ fn decrypt(
     compressed_result: &CompressedResultCipherText,
     private_key: &PrivateKey,
     crypto_params: &MatmulCryptoParameters,
-    packed_glwe_values: usize,
+    num_valid_glwe_values_in_last_ciphertext: usize,
 ) -> PyResult<Vec<Scalar>> {
     internal_decrypt(
         compressed_result,
         crypto_params,
         private_key,
-        packed_glwe_values,
+        num_valid_glwe_values_in_last_ciphertext,
     )
 }
 
@@ -357,7 +357,7 @@ fn decrypt_matrix(
     compressed_matrix: Vec<CompressedResultCipherText>,
     private_key: &PrivateKey,
     crypto_params: &MatmulCryptoParameters,
-    packed_glwe_values: usize,
+    num_valid_glwe_values_in_last_ciphertext: usize,
 ) -> PyResult<Py<PyArray2<Scalar>>> {
     let decrypted_matrix: Vec<Vec<Scalar>> = compressed_matrix
         .iter()
@@ -366,7 +366,7 @@ fn decrypt_matrix(
                 compressed_row,
                 crypto_params,
                 private_key,
-                packed_glwe_values,
+                num_valid_glwe_values_in_last_ciphertext,
             )
         })
         .collect::<Result<_, _>>()?;
