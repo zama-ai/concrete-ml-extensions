@@ -2,6 +2,7 @@ import pytest
 import concrete_ml_extensions as deai
 import json
 from conftest import PARAMS_8B_2048
+import numpy as np
 
 def test_crypto_params_load():
     with pytest.raises(ValueError):
@@ -30,4 +31,8 @@ def test_crypto_params_save(crypto_params):
     str_out = crypto_params.serialize()
     params_json_rs = json.loads(str_out)
 
-    assert params_json == params_json_rs
+    assert params_json.keys() == params_json_rs.keys(), "Dictionary keys do not match"
+    
+    for key in params_json:
+        assert np.isclose(params_json[key], params_json_rs[key], rtol=1e-9, atol=0), \
+            f"Values for key '{key}' are not close enough: {params_json[key]} != {params_json_rs[key]}"

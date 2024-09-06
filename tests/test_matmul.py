@@ -88,18 +88,50 @@ def test_matrix_multiplication(size, crypto_params):
         decrypted_result.shape == expected_result.shape
     ), "Decrypted matrix shape mismatch"
 
-    # Extract the 12 MSB from both results
-    msb_decrypted = decrypted_result >> (PARAMS_8B_2048["bits_reserved_for_computation"] - 12)
-    msb_expected = expected_result >> (PARAMS_8B_2048["bits_reserved_for_computation"] - 12)
+    # Calculate the bit-width based on the max value in the expected result
+    # In practice we will use the calibration in PTQ to find the right bit-width
+    max_value = np.max(expected_result)
+    bit_width = int(np.ceil(np.log2(max_value + 1)))
 
-    print(msb_decrypted)
-    print(msb_expected)
-    np.testing.assert_array_equal(
-        msb_decrypted,
-        msb_expected,
-        "The 12 MSB of the decrypted matrix do not match the expected result",
-    )
-    print("Encrypted matrix multiplication matches the original numpy dot product for the 12 MSB")
+
+    # Print bit-width
+    print(f"Bit-width expected: {bit_width}")
+
+    # print dtype of decrypted_result
+    print(decrypted_result.dtype)
+    print(expected_result.dtype)
+
+    # Extract the 12 MSB from both results
+    msb_decrypted = decrypted_result >> (bit_width - 12)
+    msb_expected = expected_result >> (bit_width - 12)
+
+    # Compare the arrays and find diverging values
+    diverging_indices = np.where(msb_decrypted != msb_expected)
+    total_elements = msb_decrypted.size
+    mismatch_count = len(diverging_indices[0])
+    mismatch_percentage = (mismatch_count / total_elements) * 100
+
+    if mismatch_count > 0:
+        print("\nDiverging values found:")
+        for idx in zip(*diverging_indices):
+            print(f"Index {idx}:")
+            print(f"  Original: Decrypted = {decrypted_result[idx]}, Expected = {expected_result[idx]}")
+            print(f"  MSB:      Decrypted = {msb_decrypted[idx]}, Expected = {msb_expected[idx]}")
+            print(f"  Absolute Difference: Original = {abs(int(decrypted_result[idx]) - int(expected_result[idx]))}, "
+                f"MSB = {abs(int(msb_decrypted[idx]) - int(msb_expected[idx]))}")
+            print()
+        
+        error_message = (
+            f"The 12 MSB of the decrypted matrix do not match the expected result.\n"
+            f"Number of mismatches: {mismatch_count} out of {total_elements} elements.\n"
+            f"Percentage of mismatches: {mismatch_percentage:.2f}%"
+        )
+        print(error_message)
+        raise AssertionError(error_message)
+    else:
+        print("Encrypted matrix multiplication matches the original numpy dot product for the 12 MSB")
+
+print("Encrypted matrix multiplication matches the original numpy dot product for the 12 MSB")
 
 if __name__ == "__main__":
     test_full_dot_product()
