@@ -27,7 +27,7 @@ def test_correctness(n_bits, inner_size, dims, signed, crypto_params):
     a = a.astype(np.uint64)
     b = b.astype(np.uint64)
 
-    n_bits_compute = int(np.log2(np.max(np.abs(reference)))) + 1
+    n_bits_compute = max(20, int(np.log2(np.max(np.abs(reference)))) + 1)
     params = json.loads(crypto_params.serialize())
     params["bits_reserved_for_computation"] = n_bits_compute
     modified_crypto_params = deai.MatmulCryptoParameters.deserialize(json.dumps(params))
@@ -69,14 +69,12 @@ def test_correctness(n_bits, inner_size, dims, signed, crypto_params):
     high_bits = (decrypted_result & mask)
     high_bits_reference = (reference.astype(np.int64) & mask).reshape(-1,)
 
-#    print("\n")
-#    bc = np.bincount(np.abs(high_bits - high_bits_reference))
-#    print(bc)
-#    print(np.arange(bc.size))
-   
     if dims == 2:
         assert inner_size_a <= 1
-        n_allow_err = max(inner_size, params["polynomial_size"]) * 0.05    
-        assert(np.sum(np.equal(high_bits_reference, high_bits)) > inner_size - n_allow_err)
+        n_allow_err = max(inner_size, params["polynomial_size"]) * 0.05
+        diff = np.abs(high_bits_reference - high_bits) // (2**(n_bits_compute - msbs_to_check))
+        assert(np.sum(diff == 0) > inner_size - n_allow_err)
+        assert(np.sum(diff) < n_allow_err)
+        assert(np.all(diff) <= 1)
     else:
         assert(high_bits_reference == high_bits)
