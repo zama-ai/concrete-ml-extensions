@@ -3,6 +3,7 @@
 // TODO: Implement something like Ix1 dimension handling for GLWECipherTexts
 
 use ml::EncryptedDotProductResult;
+use numpy::ndarray::Array;
 use numpy::{Ix1, Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyBytes, PyString};
@@ -279,7 +280,13 @@ fn matrix_multiplication(
     for encrypted_row in &encrypted_matrix.inner {
         let mut row_results = Vec::with_capacity(data_array.ncols());
         for data_col in data_array.columns() {
-            let data_col_slice = data_col.as_slice().unwrap();
+            let data_slice = if let Some(slc) = data_col.as_slice() {
+                Array::from_shape_vec(data_col.raw_dim(), slc.to_vec()).unwrap()
+            } else {
+                Array::from_shape_vec(data_col.raw_dim(), data_col.iter().cloned().collect()).unwrap()
+            };
+
+            let data_col_slice = data_slice.as_slice().unwrap(); //data_col.as_slice().unwrap();
             let result = internal_dot_product(
                 &CipherText {
                     inner: encrypted_row.clone(),
