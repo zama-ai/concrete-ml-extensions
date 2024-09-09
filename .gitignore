@@ -14,3 +14,5 @@ Cargo.lock
 *.pdb
 
 *__pycache__*
+
+.vscode

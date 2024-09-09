@@ -3,9 +3,11 @@ import concrete_ml_extensions as deai
 import numpy as np
 import json
 
+
+
 @pytest.mark.parametrize("n_bits", [2, 6, 8])
 @pytest.mark.parametrize("dims", [1, 2])
-@pytest.mark.parametrize("inner_size", [256, 1024, 2048])
+@pytest.mark.parametrize("inner_size", [256, 1024, 2048, 4096])
 @pytest.mark.parametrize("signed", [False]) #, True])
 def test_correctness(n_bits, inner_size, dims, signed, crypto_params):
     low = -2**(n_bits-1) if signed else 0 # randint low value is included
