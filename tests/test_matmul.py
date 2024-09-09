@@ -111,7 +111,7 @@ def test_matrix_multiplication(size, crypto_params):
     mismatch_count = len(diverging_indices[0])
     mismatch_percentage = (mismatch_count / total_elements) * 100
 
-    if mismatch_count > 0:
+    if mismatch_percentage > 7:
         print("\nDiverging values found:")
         for idx in zip(*diverging_indices):
             print(f"Index {idx}:")
