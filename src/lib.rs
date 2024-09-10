@@ -2,8 +2,9 @@
 
 // TODO: Implement something like Ix1 dimension handling for GLWECipherTexts
 
-use ml::{EncryptedDotProductResult};
-use numpy::{Ix1, PyReadonlyArray};
+use ml::EncryptedDotProductResult;
+use numpy::ndarray::Array;
+use numpy::{Ix1, Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyBytes, PyString};
 use serde::{Deserialize, Serialize};
@@ -18,6 +19,12 @@ use pyo3::prelude::*;
 // Private Key builder
 
 type Scalar = u64;
+#[derive(Serialize, Deserialize, Clone)]
+#[pyclass]
+pub struct EncryptedMatrix {
+    pub inner: Vec<ml::SeededCompressedEncryptedVector<Scalar>>,
+    pub shape: (usize, usize),
+}
 
 #[derive(Serialize, Deserialize)]
 #[pyclass]
@@ -100,7 +107,7 @@ impl CompressionKey {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[pyclass]
 struct CipherText {
     inner: crate::ml::SeededCompressedEncryptedVector<Scalar>,
@@ -118,7 +125,7 @@ impl CipherText {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[pyclass]
 struct CompressedResultCipherText {
     inner: Vec<prelude::compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext<Scalar>>,
@@ -181,26 +188,21 @@ fn create_private_key(
     ));
 }
 
-#[pyfunction]
-fn encrypt(
+fn internal_encrypt(
     pkey: &PrivateKey,
     crypto_params: &MatmulCryptoParameters,
-    data: PyReadonlyArray<u64, Ix1>,
-) -> PyResult<CipherText> {
-    // Find a better way to use the constants
-    // TODO: For now very small noise, find secure noise
+    data: &[Scalar],
+) -> Result<CipherText, PyErr> {
     let mut seeder = new_seeder();
     let seeder = seeder.as_mut();
-
     let ciphertext_modulus: CiphertextModulus<Scalar> =
         CiphertextModulus::try_new_power_of_2(crypto_params.ciphertext_modulus_bit_count).unwrap();
-
     let glwe_encryption_noise_distribution: prelude::DynamicDistribution<Scalar> =
         DynamicDistribution::new_gaussian_from_std_dev(StandardDev(
             crypto_params.glwe_encryption_noise_distribution_stdev,
         ));
     let seeded_encrypted_vector = ml::SeededCompressedEncryptedVector::<Scalar>::new(
-        &data.as_array().as_slice().unwrap(),
+        &data,
         &pkey.inner,
         crypto_params.bits_reserved_for_computation,
         CiphertextModulusLog(crypto_params.input_storage_ciphertext_modulus),
@@ -208,10 +210,111 @@ fn encrypt(
         ciphertext_modulus,
         seeder,
     );
-
-    return Ok(CipherText {
+    Ok(CipherText {
         inner: seeded_encrypted_vector,
-    });
+    })
+}
+
+fn internal_decrypt(
+    compressed_result: &CompressedResultCipherText,
+    crypto_params: &MatmulCryptoParameters,
+    private_key: &PrivateKey,
+    num_valid_glwe_values_in_last_ciphertext: usize,
+) -> PyResult<Vec<Scalar>> {
+    let mut decrypted_result = Vec::new();
+    let last_index = compressed_result.inner.len() - 1;
+
+    for (index, compressed) in compressed_result.inner.iter().enumerate() {
+        let extracted = compressed.extract();
+        let decrypted_dot: Vec<Scalar> = encryption::decrypt_glwe(
+            &private_key.post_compression_secret_key,
+            &extracted,
+            crypto_params.bits_reserved_for_computation,
+        );
+
+        if index == last_index {
+            decrypted_result.extend(decrypted_dot.into_iter().take(num_valid_glwe_values_in_last_ciphertext));
+        } else {
+            decrypted_result.extend(decrypted_dot);
+        }
+    }
+
+    Ok(decrypted_result)
+}
+
+#[pyfunction]
+fn encrypt(
+    pkey: &PrivateKey,
+    crypto_params: &MatmulCryptoParameters,
+    data: PyReadonlyArray<Scalar, Ix1>,
+) -> PyResult<CipherText> {
+    internal_encrypt(pkey, crypto_params, data.as_array().as_slice().unwrap())
+}
+
+#[pyfunction]
+fn encrypt_matrix(
+    pkey: &PrivateKey,
+    crypto_params: &MatmulCryptoParameters,
+    data: PyReadonlyArray<u64, Ix2>,
+) -> PyResult<EncryptedMatrix> {
+    let mut encrypted_matrix = Vec::new();
+    for row in data.as_array().outer_iter() {
+        let row_array = row.to_owned();
+        let encrypted_row = internal_encrypt(pkey, crypto_params, row_array.as_slice().unwrap())?;
+        encrypted_matrix.push(encrypted_row.inner);
+    }
+    Ok(EncryptedMatrix {
+        inner: encrypted_matrix,
+        shape: (data.dims()[0], data.dims()[1]),
+    })
+}
+
+#[pyfunction]
+fn matrix_multiplication(
+    encrypted_matrix: &EncryptedMatrix,
+    data: PyReadonlyArray<Scalar, Ix2>,
+    compression_key: &CompressionKey,
+) -> PyResult<Vec<CompressedResultCipherText>> {
+    let data_array = data.as_array();
+    let mut result_matrix = Vec::with_capacity(encrypted_matrix.inner.len());
+    for encrypted_row in &encrypted_matrix.inner {
+        let mut row_results = Vec::with_capacity(data_array.ncols());
+        for data_col in data_array.columns() {
+            let data_slice = if let Some(slc) = data_col.as_slice() {
+                Array::from_shape_vec(data_col.raw_dim(), slc.to_vec()).unwrap()
+            } else {
+                Array::from_shape_vec(data_col.raw_dim(), data_col.iter().cloned().collect()).unwrap()
+            };
+
+            let data_col_slice = data_slice.as_slice().unwrap(); //data_col.as_slice().unwrap();
+            let result = internal_dot_product(
+                &CipherText {
+                    inner: encrypted_row.clone(),
+                },
+                data_col_slice,
+            )?;
+            row_results.push(result);
+        }
+
+        let compressed_row = compression_key
+            .inner
+            .compress_ciphertexts_into_list(&row_results);
+
+        result_matrix.push(CompressedResultCipherText {
+            inner: compressed_row,
+        });
+    }
+
+    Ok(result_matrix)
+}
+
+fn internal_dot_product(
+    ciphertext: &CipherText,
+    data: &[Scalar],
+) -> Result<crate::ml::EncryptedDotProductResult<Scalar>, PyErr> {
+    let result: crate::ml::EncryptedDotProductResult<Scalar> =
+        ciphertext.inner.decompress().dot(data);
+    Ok(result)
 }
 
 #[pyfunction]
@@ -220,14 +323,10 @@ fn dot_product(
     data: PyReadonlyArray<Scalar, Ix1>,
     compression_key: &CompressionKey,
 ) -> PyResult<CompressedResultCipherText> {
-
-    let result: crate::ml::EncryptedDotProductResult<Scalar> = ciphertext
-    .inner
-    .decompress()
-    .dot(data.as_array().as_slice().unwrap());
+    let result = internal_dot_product(ciphertext, data.as_array().as_slice().unwrap())?;
 
     let mut result_list = Vec::<EncryptedDotProductResult<Scalar>>::new();
-    for k in 0..compression_key
+    for _ in 0..compression_key
         .inner
         .packing_key_switching_key
         .output_polynomial_size()
@@ -239,9 +338,10 @@ fn dot_product(
     let compressed_results = compression_key
         .inner
         .compress_ciphertexts_into_list(&result_list);
-    return Ok(CompressedResultCipherText {
+
+    Ok(CompressedResultCipherText {
         inner: compressed_results,
-    });
+    })
 }
 
 #[pyfunction]
@@ -249,21 +349,40 @@ fn decrypt(
     compressed_result: &CompressedResultCipherText,
     private_key: &PrivateKey,
     crypto_params: &MatmulCryptoParameters,
-) -> PyResult<Scalar> {
-    let extracted: Vec<_> = compressed_result
-        .inner
-        .clone()
-        .into_iter()
-        .map(|compressed| compressed.extract())
-        .collect();
-    let result = extracted.into_iter().next().unwrap();
-    let decrypted_dot: Vec<Scalar> = encryption::decrypt_glwe(
-        &private_key.post_compression_secret_key,
-        &result,
-        crypto_params.bits_reserved_for_computation,
-    );
-    let decrypted_dot: Scalar = decrypted_dot[0];
-    Ok(decrypted_dot)
+    num_valid_glwe_values_in_last_ciphertext: usize,
+) -> PyResult<Vec<Scalar>> {
+    internal_decrypt(
+        compressed_result,
+        crypto_params,
+        private_key,
+        num_valid_glwe_values_in_last_ciphertext,
+    )
+}
+
+#[pyfunction]
+fn decrypt_matrix(
+    compressed_matrix: Vec<CompressedResultCipherText>,
+    private_key: &PrivateKey,
+    crypto_params: &MatmulCryptoParameters,
+    num_valid_glwe_values_in_last_ciphertext: usize,
+) -> PyResult<Py<PyArray2<Scalar>>> {
+    let decrypted_matrix: Vec<Vec<Scalar>> = compressed_matrix
+        .iter()
+        .map(|compressed_row| {
+            internal_decrypt(
+                compressed_row,
+                crypto_params,
+                private_key,
+                num_valid_glwe_values_in_last_ciphertext,
+            )
+        })
+        .collect::<Result<_, _>>()?;
+
+    Python::with_gil(|py| {
+        let np_array: Bound<'_, PyArray2<Scalar>> =
+            PyArray2::from_vec2_bound(py, &decrypted_matrix)?;
+        Ok(np_array.into())
+    })
 }
 
 /// A Python module implemented in Rust. The name of this function must match
@@ -276,10 +395,14 @@ fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(encrypt, m)?)?;
     m.add_function(wrap_pyfunction!(dot_product, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt, m)?)?;
+    m.add_function(wrap_pyfunction!(encrypt_matrix, m)?)?;
+    m.add_function(wrap_pyfunction!(decrypt_matrix, m)?)?;
+    m.add_function(wrap_pyfunction!(matrix_multiplication, m)?)?;
     m.add_class::<CipherText>()?;
     m.add_class::<CompressedResultCipherText>()?;
     m.add_class::<CompressionKey>()?;
     m.add_class::<MatmulCryptoParameters>()?;
+    m.add_class::<EncryptedMatrix>()?;
     // m.add_class::<PrivateKey>()?;
     Ok(())
 }
