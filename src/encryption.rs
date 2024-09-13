@@ -159,9 +159,15 @@ where
         DecompositionLevelCount(1),
     );
 
+    let decryption_modulus = Scalar::ONE << bits_reserved_for_computation;
+
     for (decoded_value, decrypted_value) in decoded.iter_mut().zip(decrypted.iter()) {
-        *decoded_value = (decomposer.closest_representable(*decrypted_value.0) / delta)
-            % (Scalar::ONE << bits_reserved_for_computation);
+        *decoded_value =
+            (decomposer.closest_representable(*decrypted_value.0) / delta) % decryption_modulus;
+
+        if *decoded_value >= decryption_modulus / Scalar::TWO {
+            *decoded_value = (decryption_modulus - *decoded_value).wrapping_neg();
+        }
     }
 
     decoded
