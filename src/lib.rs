@@ -233,7 +233,11 @@ fn internal_decrypt(
         );
 
         if index == last_index {
-            decrypted_result.extend(decrypted_dot.into_iter().take(num_valid_glwe_values_in_last_ciphertext));
+            decrypted_result.extend(
+                decrypted_dot
+                    .into_iter()
+                    .take(num_valid_glwe_values_in_last_ciphertext),
+            );
         } else {
             decrypted_result.extend(decrypted_dot);
         }
@@ -283,7 +287,8 @@ fn matrix_multiplication(
             let data_slice = if let Some(slc) = data_col.as_slice() {
                 Array::from_shape_vec(data_col.raw_dim(), slc.to_vec()).unwrap()
             } else {
-                Array::from_shape_vec(data_col.raw_dim(), data_col.iter().cloned().collect()).unwrap()
+                Array::from_shape_vec(data_col.raw_dim(), data_col.iter().cloned().collect())
+                    .unwrap()
             };
 
             let data_col_slice = data_slice.as_slice().unwrap(); //data_col.as_slice().unwrap();
