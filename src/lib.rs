@@ -37,12 +37,12 @@ struct PrivateKey {
 #[pymethods]
 impl PrivateKey {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
-        return Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into());
+        Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into())
     }
     #[staticmethod]
     fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<PrivateKey> {
-        let deserialized: PrivateKey = bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
-        return Ok(deserialized);
+        let deserialized: PrivateKey = bincode::deserialize(content.as_bytes()).unwrap();
+        Ok(deserialized)
     }
 }
 
@@ -80,7 +80,7 @@ impl MatmulCryptoParameters {
     }
     #[staticmethod]
     fn deserialize(content: &Bound<'_, PyString>) -> PyResult<MatmulCryptoParameters> {
-        return match serde_json::from_str(&content.to_str().unwrap()) {
+        return match serde_json::from_str(content.to_str().unwrap()) {
             Ok(p) => Ok(p),
             Err(error) => Err(PyValueError::new_err(format!(
                 "Can not deserialize cryptoparameters {error}"
@@ -98,13 +98,12 @@ struct CompressionKey {
 #[pymethods]
 impl CompressionKey {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
-        return Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into());
+        Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into())
     }
     #[staticmethod]
     fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CompressionKey> {
-        let deserialized: CompressionKey =
-            bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
-        return Ok(deserialized);
+        let deserialized: CompressionKey = bincode::deserialize(content.as_bytes()).unwrap();
+        Ok(deserialized)
     }
 }
 
@@ -117,12 +116,12 @@ struct CipherText {
 #[pymethods]
 impl CipherText {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
-        return Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into());
+        Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into())
     }
     #[staticmethod]
     fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CipherText> {
-        let deserialized: CipherText = bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
-        return Ok(deserialized);
+        let deserialized: CipherText = bincode::deserialize(content.as_bytes()).unwrap();
+        Ok(deserialized)
     }
 }
 
@@ -135,13 +134,13 @@ struct CompressedResultCipherText {
 #[pymethods]
 impl CompressedResultCipherText {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
-        return Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into());
+        Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into())
     }
     #[staticmethod]
     fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CompressedResultCipherText> {
         let deserialized: CompressedResultCipherText =
-            bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
-        return Ok(deserialized);
+            bincode::deserialize(content.as_bytes()).unwrap();
+        Ok(deserialized)
     }
 }
 
@@ -178,7 +177,7 @@ fn create_private_key(
     let glwe_secret_key_as_lwe_secret_key = glwe_secret_key.as_lwe_secret_key();
     let (post_compression_glwe_secret_key, compression_key) =
         compression::CompressionKey::new(&glwe_secret_key_as_lwe_secret_key, compression_params);
-    return Ok((
+    Ok((
         PrivateKey {
             inner: glwe_secret_key,
             post_compression_secret_key: post_compression_glwe_secret_key,
@@ -186,7 +185,7 @@ fn create_private_key(
         CompressionKey {
             inner: compression_key,
         },
-    ));
+    ))
 }
 
 fn internal_encrypt(
@@ -203,7 +202,7 @@ fn internal_encrypt(
             crypto_params.glwe_encryption_noise_distribution_stdev,
         ));
     let seeded_encrypted_vector = ml::SeededCompressedEncryptedVector::<Scalar>::new(
-        &data,
+        data,
         &pkey.inner,
         crypto_params.bits_reserved_for_computation,
         CiphertextModulusLog(crypto_params.input_storage_ciphertext_modulus),
@@ -282,6 +281,8 @@ fn matrix_multiplication(
 ) -> PyResult<Vec<CompressedResultCipherText>> {
     let data_array = data.as_array();
 
+    // This is required as the iteration does not yield contiguous data, preventing the use of slice
+    // ops (which requires inputs to be contiguous slices)
     let data_columns: Vec<_> = data_array
         .axis_iter(Axis(1))
         .map(|col| col.to_owned())
@@ -291,18 +292,14 @@ fn matrix_multiplication(
         .inner
         .par_iter()
         .map(|encrypted_row| {
+            let decompressed_row = encrypted_row.decompress();
             let row_results = data_columns
                 .par_iter()
                 .map(|data_col| {
                     let data_col_slice = data_col.as_slice().unwrap();
-                    internal_dot_product(
-                        &CipherText {
-                            inner: encrypted_row.clone(),
-                        },
-                        data_col_slice,
-                    )
+                    decompressed_row.dot(data_col_slice)
                 })
-                .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Vec<_>>();
 
             let compressed_row = compression_key
                 .inner
@@ -314,7 +311,7 @@ fn matrix_multiplication(
         })
         .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
 
-    Ok(result_matrix?)
+    result_matrix
 }
 
 fn internal_dot_product(
