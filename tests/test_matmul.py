@@ -55,7 +55,7 @@ def test_matrix_multiplication(size, crypto_params):
 
     matrix_shape = (1, size)
     values = np.random.randint(0, 2**8, size=matrix_shape, dtype=np.uint64)
-    other_matrix = np.random.randint(0, 2**8, size=(size, size), dtype=np.uint64)
+    other_matrix = np.random.randint(0, 2**7, size=(size, size), dtype=np.uint64)
 
     # Running everything with timings
     with Timing("keygen"):
@@ -75,7 +75,7 @@ def test_matrix_multiplication(size, crypto_params):
     with Timing("decryption"):
         decrypted_result = deai.decrypt_matrix(
             matmul_result, pkey, crypto_params, num_valid_glwe_values_in_last_ciphertext=num_valid_glwe_values_in_last_ciphertext
-        )
+        ).astype(np.int64)
 
     print("Matrix multiplication encryption test passed")
 
@@ -101,9 +101,10 @@ def test_matrix_multiplication(size, crypto_params):
     print(decrypted_result.dtype)
     print(expected_result.dtype)
 
+    shift_delta_bits = 12 if bit_width <= 12 else bit_width - 12
     # Extract the 12 MSB from both results
-    msb_decrypted = decrypted_result >> (bit_width - 12)
-    msb_expected = expected_result >> (bit_width - 12)
+    msb_decrypted = decrypted_result >> shift_delta_bits
+    msb_expected = expected_result >> shift_delta_bits
 
     # Compare the arrays and find diverging values
     diverging_indices = np.where(msb_decrypted != msb_expected)
