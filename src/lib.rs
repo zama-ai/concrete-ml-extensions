@@ -3,19 +3,20 @@
 // TODO: Implement something like Ix1 dimension handling for GLWECipherTexts
 
 use ml::EncryptedDotProductResult;
-use numpy::ndarray::Array;
+use numpy::ndarray::Axis;
 use numpy::{Ix1, Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyBytes, PyString};
 use serde::{Deserialize, Serialize};
 use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
-
 mod compression;
 mod computations;
 mod encryption;
 mod ml;
 use pyo3::prelude::*;
+use rayon::prelude::*;
+
 // Private Key builder
 
 type Scalar = u64;
@@ -280,37 +281,40 @@ fn matrix_multiplication(
     compression_key: &CompressionKey,
 ) -> PyResult<Vec<CompressedResultCipherText>> {
     let data_array = data.as_array();
-    let mut result_matrix = Vec::with_capacity(encrypted_matrix.inner.len());
-    for encrypted_row in &encrypted_matrix.inner {
-        let mut row_results = Vec::with_capacity(data_array.ncols());
-        for data_col in data_array.columns() {
-            let data_slice = if let Some(slc) = data_col.as_slice() {
-                Array::from_shape_vec(data_col.raw_dim(), slc.to_vec()).unwrap()
-            } else {
-                Array::from_shape_vec(data_col.raw_dim(), data_col.iter().cloned().collect())
-                    .unwrap()
-            };
 
-            let data_col_slice = data_slice.as_slice().unwrap(); //data_col.as_slice().unwrap();
-            let result = internal_dot_product(
-                &CipherText {
-                    inner: encrypted_row.clone(),
-                },
-                data_col_slice,
-            )?;
-            row_results.push(result);
-        }
+    let data_columns: Vec<_> = data_array
+        .axis_iter(Axis(1))
+        .map(|col| col.to_owned())
+        .collect();
 
-        let compressed_row = compression_key
-            .inner
-            .compress_ciphertexts_into_list(&row_results);
+    let result_matrix = encrypted_matrix
+        .inner
+        .par_iter()
+        .map(|encrypted_row| {
+            let row_results = data_columns
+                .par_iter()
+                .map(|data_col| {
+                    let data_col_slice = data_col.as_slice().unwrap();
+                    internal_dot_product(
+                        &CipherText {
+                            inner: encrypted_row.clone(),
+                        },
+                        data_col_slice,
+                    )
+                })
+                .collect::<Result<Vec<_>, _>>()?;
 
-        result_matrix.push(CompressedResultCipherText {
-            inner: compressed_row,
-        });
-    }
+            let compressed_row = compression_key
+                .inner
+                .compress_ciphertexts_into_list(&row_results);
 
-    Ok(result_matrix)
+            Ok(CompressedResultCipherText {
+                inner: compressed_row,
+            })
+        })
+        .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
+
+    Ok(result_matrix?)
 }
 
 fn internal_dot_product(
