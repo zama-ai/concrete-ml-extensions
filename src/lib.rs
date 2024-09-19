@@ -8,8 +8,11 @@ use numpy::{Ix1, Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyBytes, PyString};
 use serde::{Deserialize, Serialize};
+use std::ops::Add;
+use std::time::{Duration, Instant};
 use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
+
 mod compression;
 mod computations;
 mod encryption;
@@ -281,6 +284,18 @@ fn matrix_multiplication(
     compression_key: &CompressionKey,
 ) -> PyResult<Vec<CompressedResultCipherText>> {
     let data_array = data.as_array();
+    /*
+       let data_slice = if let Some(slc) = data_col.as_slice() {
+           Array::from_shape_vec(data_col.raw_dim(), slc.to_vec()).unwrap()
+       } else {
+           Array::from_shape_vec(data_col.raw_dim(), data_col.iter().cloned().collect())
+               .unwrap()
+       };
+    */
+
+    let mut duration_dot = Duration::new(0, 0);
+    let mut duration_pks = Duration::new(0, 0);
+    let start_0 = Instant::now();
 
     let data_columns: Vec<_> = data_array
         .axis_iter(Axis(1))
@@ -289,8 +304,10 @@ fn matrix_multiplication(
 
     let result_matrix = encrypted_matrix
         .inner
-        .par_iter()
+        .iter()
         .map(|encrypted_row| {
+            let now = Instant::now();
+
             let row_results = data_columns
                 .par_iter()
                 .map(|data_col| {
@@ -304,15 +321,27 @@ fn matrix_multiplication(
                 })
                 .collect::<Result<Vec<_>, _>>()?;
 
+            duration_dot = duration_dot.add(now.elapsed());
+
+            let now = Instant::now();
             let compressed_row = compression_key
                 .inner
                 .compress_ciphertexts_into_list(&row_results);
+            duration_pks = duration_pks.add(now.elapsed());
 
             Ok(CompressedResultCipherText {
                 inner: compressed_row,
             })
         })
         .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
+
+    let duration_all = start_0.elapsed();
+    println!();
+    println!();
+    println!(
+        "Time in dot {:?}, in pks {:?}, all {:?}",
+        duration_dot, duration_pks, duration_all
+    );
 
     Ok(result_matrix?)
 }

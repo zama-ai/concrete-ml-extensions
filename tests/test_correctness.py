@@ -2,7 +2,7 @@ import pytest
 import concrete_ml_extensions as deai
 import numpy as np
 import json
-
+from time import time
 
 @pytest.mark.parametrize("n_bits", [2, 6, 8])
 @pytest.mark.parametrize("dims", [1, 2])
@@ -61,9 +61,12 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
         encrypted_matrix = deai.encrypt_matrix(
             pkey=pkey, crypto_params=modified_crypto_params, data=a
         )
+        start_t = time()
         matmul_result = deai.matrix_multiplication(
             encrypted_matrix=encrypted_matrix, data=b, compression_key=ckey
         )
+        end_t = time()
+        print(f"Elapsed in matmul: {end_t-start_t}")
 
         polynomial_size = params["polynomial_size"]
         num_valid_glwe_values_in_last_ciphertext = (
