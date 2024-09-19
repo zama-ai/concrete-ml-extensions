@@ -7,7 +7,7 @@ import json
 @pytest.mark.parametrize("n_bits", [2, 6, 8])
 @pytest.mark.parametrize("dims", [1, 2])
 @pytest.mark.parametrize("inner_size", [256, 1024, 2048, 4096])
-@pytest.mark.parametrize("signed_b", [False])  # , True]) #FIXME: not working for signed yet.
+@pytest.mark.parametrize("signed_b", [False, True]) #FIXME: not working for signed yet.
 def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     low_b = -(2 ** (n_bits - 1)) if signed_b else 0  # randint low value is included
     high_b = (
@@ -19,17 +19,21 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     inner_size_a = 1 if dims == 2 else None
     inner_size_b = inner_size if dims == 2 else None
 
+    # Signed values must be processed for the weights, so
+    # we generate signed int64. This is also used to compute
+    # the max bits 
     if dims == 1:
         a = np.random.randint(0, high_a, size=(inner_size,), dtype=np.uint64)
-        b = np.random.randint(low_b, high_b, size=(inner_size,), dtype=np.uint64)
+        b = np.random.randint(low_b, high_b, size=(inner_size,), dtype=np.int64)
     else:
         a = np.random.randint(
             0, high_a, size=(inner_size_a, inner_size), dtype=np.uint64
         )
         b = np.random.randint(
-            low_b, high_b, size=(inner_size, inner_size_b), dtype=np.uint64
+            low_b, high_b, size=(inner_size, inner_size_b), dtype=np.int64
         )
 
+    # These computations used signed weights
     reference = a @ b
 
     max_value = np.max(reference)
@@ -37,6 +41,9 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
 
     assert n_bits_compute <= 27, "n_bits_compute exceeds maximum allowed value"
 
+    # Change the encoding to push the inputs and the result
+    # as much as possible to the left in the MSBs
+    # in order to avoid noise corruption
     params = json.loads(crypto_params.serialize())
     params["bits_reserved_for_computation"] = (
         n_bits_compute + 1
@@ -44,6 +51,11 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     modified_crypto_params = deai.MatmulCryptoParameters.deserialize(json.dumps(params))
 
     pkey, ckey = deai.create_private_key(modified_crypto_params)
+
+    # Need to convert to uint64 since this is what is handled
+    # by the crypto
+    a = a.astype(np.uint64)
+    b = b.astype(np.uint64)
 
     if dims == 2:
         encrypted_matrix = deai.encrypt_matrix(
@@ -88,6 +100,9 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
         )
         decrypted_result = np.asarray(decrypted_result).astype(np.int64)[0]
 
+    # Need to check only MSBS
+    # since these are those that are guaranteed
+    # to be correct by the crypto-parameters
     msbs_to_check = 12 if n_bits_compute > 12 else n_bits_compute
     shift_delta = 2 ** (n_bits_compute - msbs_to_check)
     high_bits = decrypted_result // shift_delta
