@@ -37,7 +37,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     reference = a @ b
 
     max_value = np.max(reference)
-    n_bits_compute = int(np.ceil(np.log2(max_value + 1)))
+    n_bits_compute = int(np.ceil(np.log2(np.abs(max_value) + 1)))
 
     assert n_bits_compute <= 27, "n_bits_compute exceeds maximum allowed value"
 
