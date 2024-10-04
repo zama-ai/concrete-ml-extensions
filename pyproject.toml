@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "concrete-ml-extensions"
-version = "0.1.0"
+version = "0.1.1"
 description = "Concrete ML extensions is a set of tools used by the Concrete ML library implemented using the TFHE-rs library."
 license = "BSD 3-Clause Clear License"
 authors = [
