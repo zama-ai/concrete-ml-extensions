@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "concrete-ml-extensions"
-version = "0.1.0"
+version = "0.1.1"
 description = "Concrete ML extensions is a set of tools used by the Concrete ML library implemented using the TFHE-rs library."
-license = "BSD-3-Clause-Clear"
+license = "BSD 3-Clause Clear License"
 authors = [
     "Zama <hello@zama.ai>",
 ]
@@ -21,6 +21,8 @@ classifiers = [
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 readme = "README.md"
 

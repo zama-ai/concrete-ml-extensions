@@ -1,7 +1,10 @@
 [package]
-name = "deai-dot-products"
-version = "0.1.0"
+name = "concrete-ml-extensions"
+version = "0.1.1"
 edition = "2021"
+description = "Private matrix multiplication library using fully homomorphic encryption"
+license-file = "LICENSE"
+homepage = "https://zama.ai"
 
 [lib]
 name="concrete_ml_extensions"
