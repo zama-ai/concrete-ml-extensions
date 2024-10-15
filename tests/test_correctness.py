@@ -2,6 +2,9 @@ import pytest
 import concrete_ml_extensions as deai
 import numpy as np
 import json
+import time
+
+CRYPTO_DTYPE = np.uint32
 
 @pytest.mark.parametrize("n_bits", [2, 6, 8])
 @pytest.mark.parametrize("dims", [1, 2])
@@ -15,7 +18,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
 
     high_a = 2**n_bits
 
-    inner_size_a = 1 if dims == 2 else None
+    inner_size_a = 8 if dims == 2 else None
     inner_size_b = inner_size if dims == 2 else None
 
     # Signed values must be processed for the weights, so
@@ -47,22 +50,28 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     params["bits_reserved_for_computation"] = (
         n_bits_compute + 1
     )  # +1 for sign bit if needed
+#    params["packing_ks_level"] = 1
     modified_crypto_params = deai.MatmulCryptoParameters.deserialize(json.dumps(params))
 
     pkey, ckey = deai.create_private_key(modified_crypto_params)
 
     # Need to convert to uint64 since this is what is handled
     # by the crypto
-    a = a.astype(np.uint64)
-    b = b.astype(np.uint64)
+    a = a.astype(CRYPTO_DTYPE)
+    b = b.astype(CRYPTO_DTYPE)
 
     if dims == 2:
         encrypted_matrix = deai.encrypt_matrix(
             pkey=pkey, crypto_params=modified_crypto_params, data=a
         )
+        start_time = time.time()
+
         matmul_result = deai.matrix_multiplication(
             encrypted_matrix=encrypted_matrix, data=b, compression_key=ckey
         )
+
+        tot_server_time = time.time() - start_time
+        print(f"Server time without serialization {tot_server_time}s")
 
         polynomial_size = params["polynomial_size"]
         num_valid_glwe_values_in_last_ciphertext = (
@@ -75,9 +84,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
             modified_crypto_params,
             num_valid_glwe_values_in_last_ciphertext=num_valid_glwe_values_in_last_ciphertext,
         )
-        decrypted_result = decrypted_result.reshape(
-            -1,
-        ).astype(np.int64)
+        decrypted_result = decrypted_result.astype(np.int64)
     else:
         ciphertext_a = deai.encrypt(pkey, modified_crypto_params, a)
 
@@ -87,6 +94,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
         encrypted_result = deai.dot_product(ciphertext_a, b, ckey)
 
         serialized_encrypted_result = encrypted_result.serialize()
+
         encrypted_result = deai.CompressedResultCipherText.deserialize(
             serialized_encrypted_result
         )
@@ -108,7 +116,6 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     high_bits_reference = reference.astype(np.int64) // shift_delta
 
     if dims == 2:
-        assert inner_size_a <= 1
         n_allow_err = inner_size * 0.01
         diff = np.abs(
             high_bits_reference - high_bits

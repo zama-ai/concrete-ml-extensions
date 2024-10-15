@@ -19,7 +19,9 @@ use rayon::prelude::*;
 
 // Private Key builder
 
-type Scalar = u64;
+use std::time::Instant;
+
+type Scalar = u32;
 #[derive(Serialize, Deserialize, Clone)]
 #[pyclass]
 pub struct EncryptedMatrix {
@@ -260,7 +262,7 @@ fn encrypt(
 fn encrypt_matrix(
     pkey: &PrivateKey,
     crypto_params: &MatmulCryptoParameters,
-    data: PyReadonlyArray<u64, Ix2>,
+    data: PyReadonlyArray<Scalar, Ix2>,
 ) -> PyResult<EncryptedMatrix> {
     let mut encrypted_matrix = Vec::new();
     for row in data.as_array().outer_iter() {
@@ -289,21 +291,24 @@ fn matrix_multiplication(
 
     let result_matrix = encrypted_matrix
         .inner
-        .par_iter()
+        .iter()
         .map(|encrypted_row| {
+            let now = Instant::now();
+            let decompressed_row = encrypted_row.decompress();
+            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
+
+            let now = Instant::now();
+
             let row_results = data_columns
                 .par_iter()
                 .map(|data_col| {
                     let data_col_slice = data_col.as_slice().unwrap();
-                    internal_dot_product(
-                        &CipherText {
-                            inner: encrypted_row.clone(),
-                        },
-                        data_col_slice,
-                    )
+                    decompressed_row.dot(data_col_slice)
                 })
-                .collect::<Result<Vec<_>, _>>()?;
+                .collect::<Vec<_>>();
 
+            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
+            
             let compressed_row = compression_key
                 .inner
                 .compress_ciphertexts_into_list(&row_results);
@@ -394,6 +399,21 @@ fn decrypt_matrix(
     })
 }
 
+static PARAMS_8B_2048_NEW: &str = r#"{
+    "bits_reserved_for_computation": 27,
+    "glwe_encryption_noise_distribution_stdev": 8.67361737996499e-19,
+    "encryption_glwe_dimension": 1,
+    "polynomial_size": 2048,
+    "ciphertext_modulus_bit_count": 32,
+    "input_storage_ciphertext_modulus": 32,
+    "packing_ks_level": 1, 
+    "packing_ks_base_log": 21,
+    "packing_ks_polynomial_size": 2048,              
+    "packing_ks_glwe_dimension": 1,       
+    "output_storage_ciphertext_modulus": 19,
+    "pks_noise_distrubution_stdev": 8.095547030480235e-30
+}"#;
+
 static PARAMS_8B_2048: &str = r#"{
     "bits_reserved_for_computation": 27,
     "glwe_encryption_noise_distribution_stdev": 5.293956729894075e-23,
@@ -411,7 +431,7 @@ static PARAMS_8B_2048: &str = r#"{
 
 #[pyfunction]
 fn default_params() -> String {
-    PARAMS_8B_2048.to_string()
+    PARAMS_8B_2048_NEW.to_string()
 }
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
