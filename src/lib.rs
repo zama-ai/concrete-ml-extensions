@@ -16,12 +16,14 @@ mod encryption;
 mod ml;
 use pyo3::prelude::*;
 use rayon::prelude::*;
+use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
+use tfhe::core_crypto::gpu::CudaStreams;
 
 // Private Key builder
 
 use std::time::Instant;
 
-type Scalar = u32;
+type Scalar = u64;
 #[derive(Serialize, Deserialize, Clone)]
 #[pyclass]
 pub struct EncryptedMatrix {
@@ -91,22 +93,29 @@ impl MatmulCryptoParameters {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+//#[derive(Serialize, Deserialize)]
 #[pyclass]
 struct CompressionKey {
-    inner: compression::CompressionKey<Scalar>,
+    inner: compression::CompressionKey<Scalar>,    
+    buffers: compression::CompressionBuffers<Scalar>,
 }
 
 #[pymethods]
 impl CompressionKey {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
-        return Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into());
+        return Ok(PyBytes::new_bound(py, bincode::serialize(&self.inner).unwrap().as_slice()).into());
     }
     #[staticmethod]
     fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CompressionKey> {
-        let deserialized: CompressionKey =
+        let gpu_index = 0;
+        let stream = CudaStreams::new_single_gpu(gpu_index);
+
+        let deserialized: compression::CompressionKey<Scalar> =
             bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
-        return Ok(deserialized);
+
+        let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&deserialized.packing_key_switching_key, &stream);
+
+        return Ok(CompressionKey{ inner: deserialized, buffers: compression::CompressionBuffers{ cuda_pksk: cuda_pksk } });
     }
 }
 
@@ -180,6 +189,11 @@ fn create_private_key(
     let glwe_secret_key_as_lwe_secret_key = glwe_secret_key.as_lwe_secret_key();
     let (post_compression_glwe_secret_key, compression_key) =
         compression::CompressionKey::new(&glwe_secret_key_as_lwe_secret_key, compression_params);
+
+    let gpu_index = 0;
+    let stream = CudaStreams::new_single_gpu(gpu_index);
+    let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&compression_key.packing_key_switching_key, &stream);
+
     return Ok((
         PrivateKey {
             inner: glwe_secret_key,
@@ -187,6 +201,7 @@ fn create_private_key(
         },
         CompressionKey {
             inner: compression_key,
+            buffers: compression::CompressionBuffers { cuda_pksk: cuda_pksk },
         },
     ));
 }
@@ -289,29 +304,34 @@ fn matrix_multiplication(
         .map(|col| col.to_owned())
         .collect();
 
+    let poly_size_compress = compression_key.inner.packing_key_switching_key.output_polynomial_size(); 
+    let lwe_size = LweSize(poly_size_compress.0 + 1);
+    let lwe_count = LweCiphertextCount(data_columns.len());
+
+    let mut row_results2  = LweCiphertextList::new(0, lwe_size, lwe_count, compression_key.inner.packing_key_switching_key.ciphertext_modulus());
+
     let result_matrix = encrypted_matrix
         .inner
         .iter()
         .map(|encrypted_row| {
             let now = Instant::now();
             let decompressed_row = encrypted_row.decompress();
-            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
+//            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
 
-            let now = Instant::now();
+//            let now = Instant::now();
 
-            let row_results = data_columns
-                .par_iter()
-                .map(|data_col| {
+            data_columns
+                .par_iter().zip(row_results2.par_iter_mut())
+                .for_each(|(data_col, mut result_out)| {
                     let data_col_slice = data_col.as_slice().unwrap();
-                    decompressed_row.dot(data_col_slice)
-                })
-                .collect::<Vec<_>>();
+                    result_out.as_mut().copy_from_slice(decompressed_row.dot(data_col_slice).as_lwe().into_container());
+                });
 
-            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
+//            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
             
             let compressed_row = compression_key
                 .inner
-                .compress_ciphertexts_into_list(&row_results);
+                .compress_ciphertexts_into_list(&row_results2, &compression_key.buffers);
 
             Ok(CompressedResultCipherText {
                 inner: compressed_row,
@@ -349,9 +369,24 @@ fn dot_product(
         result_list.push(result.clone());
     }
 
+    let mut list: Vec<_> = Vec::with_capacity(result_list.len());
+    
+    for ct in result_list {
+        let ct = ct.as_lwe();
+        assert_eq!(
+            result.as_lwe().lwe_size(),
+            ct.lwe_size(),
+            "All ciphertexts do not have the same lwe size as the packing keyswitch key"
+        );
+     
+        list.extend(ct.as_ref());
+    }
+    
+    let ct_list = LweCiphertextList::from_container(list, result.as_lwe().lwe_size(), result.as_lwe().ciphertext_modulus());
+
     let compressed_results = compression_key
         .inner
-        .compress_ciphertexts_into_list(&result_list);
+        .compress_ciphertexts_into_list(&ct_list, &compression_key.buffers);
 
     Ok(CompressedResultCipherText {
         inner: compressed_results,

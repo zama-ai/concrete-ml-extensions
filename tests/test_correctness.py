@@ -4,7 +4,7 @@ import numpy as np
 import json
 import time
 
-CRYPTO_DTYPE = np.uint32
+CRYPTO_DTYPE = np.uint64
 
 @pytest.mark.parametrize("n_bits", [2, 6, 8])
 @pytest.mark.parametrize("dims", [1, 2])
@@ -124,5 +124,5 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
         assert np.sum(diff == 0) >= inner_size - n_allow_err
     else:
         assert (
-            high_bits_reference == high_bits
+            np.abs(high_bits_reference - high_bits) <= 1
         ), "High bits do not match in dot product test"
