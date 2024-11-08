@@ -1,0 +1,5 @@
+# This file is parsed by Slab Zama's CI bot to handle AWS EC2 resources.
+[backend.aws.single-t4-gpu]
+region = "eu-west-1"
+image_id = "ami-0852de09092f3a061" # Ubuntu 22.04 with CUDA
+instance_type = "p2.xlarge"

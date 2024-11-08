@@ -4,20 +4,47 @@ on: [pull_request]
 
 env:
   CARGO_TERM_COLOR: always
+  SLAB_PROFILE: big-cpu
 
 jobs:
-  build:
+  setup-ec2:
+    name: Setup EC2 instance
     runs-on: ubuntu-latest
+    outputs:
+      runner-name: ${{ steps.start-instance.outputs.label }}
+    steps:
+      - name: Start instance
+        id: start-instance
+        uses: zama-ai/slab-github-runner@801df0b8db5ea2b06128b7476c652f5ed5f193a8
+        with:
+          mode: start
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          backend: aws
+          profile: ${{ env.SLAB_PROFILE }}
+
+  build:
+    needs: [setup-ec2]
+    runs-on: ${{ needs.setup-ec2.outputs.runner-name }}
+
     strategy:
       matrix:
         python-version: ["3.8"] # We limit to 3.8 for now to limit time spent
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          lfs: true
+          ref: ${{ github.event.inputs.git-ref }}
+
       - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+
       # You can test your matrix by printing the current Python version
       - name: Install dependencies
         run: 
@@ -27,8 +54,24 @@ jobs:
 
       - name: Build package
         run: 
-          python -m poetry run maturin develop --release
+          python -m poetry run maturin develop -f cuda --release
 
       - name: Run tests
         run: 
           make pytest
+
+  teardown-ec2:
+    name: Teardown EC2 instance (fast-tests)
+    if: ${{ always() }}
+    needs: [ setup-ec2, build ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stop instance
+        id: stop-instance
+        uses: zama-ai/slab-github-runner@801df0b8db5ea2b06128b7476c652f5ed5f193a8
+        with:
+          mode: stop
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          label: ${{ needs.setup-ec2.outputs.runner-name }}
