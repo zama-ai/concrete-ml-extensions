@@ -4,7 +4,7 @@ on: [pull_request]
 
 env:
   CARGO_TERM_COLOR: always
-  SLAB_PROFILE: big-cpu
+  SLAB_PROFILE: single-t4-gpu
 
 jobs:
   setup-ec2:
