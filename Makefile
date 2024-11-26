@@ -61,3 +61,19 @@ help:
 .PHONY: pytest
 pytest:
 	poetry run pytest ./tests -svv --capture=tee-sys --cache-clear
+
+.PHONY: build_dev_cpu
+build_dev_cpu:
+	maturin develop --release
+
+.PHONY: wheel_cpu
+wheel_cpu:
+	maturin build --release
+
+.PHONY: build_dev_gpu
+build_dev_gpu:
+	maturin develop -m gpu/Cargo.toml --target-dir target_gpu --release
+
+.PHONY: wheel_gpu
+wheel_gpu:
+	maturin build -m gpu/Cargo.toml --target-dir target_gpu --release

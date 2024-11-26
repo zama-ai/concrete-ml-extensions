@@ -1,31 +1,35 @@
-use rayon::prelude::*;
 use tfhe::core_crypto::commons::math::random::CompressionSeed;
 use tfhe::core_crypto::entities::compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext;
 use tfhe::core_crypto::entities::packed_integers::PackedIntegers;
 use tfhe::core_crypto::fft_impl::common::modulus_switch;
 use tfhe::core_crypto::prelude::*;
+use std::marker::PhantomData;
+
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::prelude::misc::check_encrypted_content_respects_mod;
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::algorithms::lwe_packing_keyswitch::cuda_keyswitch_lwe_ciphertext_list_into_glwe_ciphertext_async;
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
 
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
 
-use std::sync::Arc;
-use serde::Deserialize;
-use serde::Deserializer;
-use std::error::Error;
-
-use std::time::{Duration, Instant};
-
-use std::fs::File;
-use std::io::{BufWriter, Write};
+//use std::time::{Duration, Instant};
+//use std::fs::File;
+//use std::io::{BufWriter, Write};
 
 pub struct CompressionBuffers<Scalar: UnsignedInteger> {
-    pub cuda_pksk: CudaLwePackingKeyswitchKey<Scalar>,    
+    #[cfg(feature = "cuda")]
+    pub cuda_pksk: CudaLwePackingKeyswitchKey<Scalar>,
+    pub _tmp: PhantomData<Scalar>,
 }
 
+//pub _not_used: Scalar,
 
 #[derive(Clone, serde::Serialize, serde::Deserialize)]
 pub struct CompressedModulusSwitchedSeededGlweCiphertext<Scalar: UnsignedInteger> {
@@ -173,9 +177,6 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
             &mut encryption_rng,
         );
 
-        let gpu_index = 0;
-        let stream = CudaStreams::new_single_gpu(gpu_index);
-
         let glwe_compression_key = CompressionKey {
             packing_key_switching_key,
             lwe_per_glwe: params.lwe_per_glwe,
@@ -185,6 +186,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
         (post_packing_secret_key, glwe_compression_key)
     }
 
+    #[cfg(feature = "cuda")]
     pub fn compress_ciphertexts_into_list<C: Container<Element = Scalar>>(
         &self,
         ciphertexts: &LweCiphertextList<C>, // &[crate::ml::EncryptedDotProductResult<Scalar>],
@@ -226,7 +228,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
                 let bodies_count = list.lwe_ciphertext_count();
 
 /**/
-                                let now = Instant::now();
+//                let now = Instant::now();
 
                 let d_input_lwe = CudaLweCiphertextList::from_lwe_ciphertext_list(&list, &stream);
 
@@ -257,7 +259,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
 
                 let binding = output_glwe_list.get(0);
                 let out_gpu = binding.as_view();
-                println!("GPU TIME : {}ms", now.elapsed().as_millis());
+//                println!("GPU TIME : {}ms", now.elapsed().as_millis());
 /**/
 
 /*
@@ -296,4 +298,56 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
             .collect();
         result
     }
+
+    #[cfg(not(feature = "cuda"))]
+    pub fn compress_ciphertexts_into_list<C: Container<Element = Scalar>>(
+        &self,
+        ciphertexts: &LweCiphertextList<C>,
+        buffers: &CompressionBuffers<Scalar>,
+    ) -> Vec<CompressedModulusSwitchedGlweCiphertext<Scalar>> {
+        let lwe_pksk = &self.packing_key_switching_key;
+
+        let polynomial_size = lwe_pksk.output_polynomial_size();
+        let ciphertext_modulus: CiphertextModulus<Scalar> = lwe_pksk.ciphertext_modulus();
+        let glwe_size = lwe_pksk.output_glwe_size();
+        let lwe_size = lwe_pksk.input_key_lwe_dimension().to_lwe_size();
+
+        let lwe_per_glwe = self.lwe_per_glwe;
+
+        assert!(
+            lwe_per_glwe.0 <= polynomial_size.0,
+            "Cannot pack more than polynomial_size(={}) elements per glwe, {} requested",
+            polynomial_size.0,
+            lwe_per_glwe.0,
+        );
+
+        let result = ciphertexts
+            .chunks(lwe_per_glwe.0)
+            .map(|list| {
+
+                let bodies_count = list.lwe_ciphertext_count();
+
+                let mut out = GlweCiphertext::new(
+                    Scalar::ZERO,
+                    glwe_size,
+                    polynomial_size,
+                    ciphertext_modulus,
+                );
+                
+                // TODO: add primitives to avoid having to use list primitives when possible
+                par_keyswitch_lwe_ciphertext_list_and_pack_in_glwe_ciphertext(
+                    lwe_pksk, &list, &mut out,
+                );
+
+                let compressed = CompressedModulusSwitchedGlweCiphertext::compress(
+                    &out,
+                    self.storage_log_modulus,
+                    bodies_count,
+                );
+
+                compressed
+            })
+            .collect();
+        result
+    }    
 }

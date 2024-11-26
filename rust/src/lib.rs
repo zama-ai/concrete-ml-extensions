@@ -10,13 +10,18 @@ use pyo3::types::{PyBytes, PyString};
 use serde::{Deserialize, Serialize};
 use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
+use tfhe::core_crypto::gpu::is_cuda_available as core_is_cuda_available;
 mod compression;
 mod computations;
 mod encryption;
 mod ml;
 use pyo3::prelude::*;
 use rayon::prelude::*;
+use std::marker::PhantomData;
+
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
 
 // Private Key builder
@@ -105,6 +110,8 @@ impl CompressionKey {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
         return Ok(PyBytes::new_bound(py, bincode::serialize(&self.inner).unwrap().as_slice()).into());
     }
+
+    #[cfg(feature = "cuda")]
     #[staticmethod]
     fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CompressionKey> {
         let gpu_index = 0;
@@ -115,7 +122,17 @@ impl CompressionKey {
 
         let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&deserialized.packing_key_switching_key, &stream);
 
-        return Ok(CompressionKey{ inner: deserialized, buffers: compression::CompressionBuffers{ cuda_pksk: cuda_pksk } });
+        return Ok(CompressionKey{ inner: deserialized, buffers: compression::CompressionBuffers{ cuda_pksk: cuda_pksk,  _tmp:PhantomData  } });
+    }
+
+    #[cfg(not(feature = "cuda"))]
+    #[staticmethod]
+    fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CompressionKey> {
+        use std::marker::PhantomData;
+
+        let deserialized: compression::CompressionKey<Scalar> =
+            bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
+        return Ok(CompressionKey{ inner: deserialized, buffers: compression::CompressionBuffers::<Scalar>{ _tmp:PhantomData } });
     }
 }
 
@@ -156,6 +173,28 @@ impl CompressedResultCipherText {
     }
 }
 
+
+#[cfg(not(feature = "cuda"))]
+fn create_private_compresion_key_return(compression_key: compression::CompressionKey<Scalar>) -> CompressionKey {
+    CompressionKey {
+        inner: compression_key,
+        buffers: compression::CompressionBuffers::<Scalar>{ _tmp:PhantomData }
+    }
+}
+
+#[cfg(feature = "cuda")]
+fn create_private_compresion_key_return(compression_key: compression::CompressionKey<Scalar>) -> CompressionKey {
+
+    let gpu_index = 0;
+    let stream = CudaStreams::new_single_gpu(gpu_index);
+    let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&compression_key.packing_key_switching_key, &stream);
+
+    CompressionKey {
+        inner: compression_key,
+        buffers: compression::CompressionBuffers { cuda_pksk: cuda_pksk,  _tmp:PhantomData  },
+    }
+}
+
 #[pyfunction]
 fn create_private_key(
     crypto_params: &MatmulCryptoParameters,
@@ -190,19 +229,12 @@ fn create_private_key(
     let (post_compression_glwe_secret_key, compression_key) =
         compression::CompressionKey::new(&glwe_secret_key_as_lwe_secret_key, compression_params);
 
-    let gpu_index = 0;
-    let stream = CudaStreams::new_single_gpu(gpu_index);
-    let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&compression_key.packing_key_switching_key, &stream);
-
     return Ok((
         PrivateKey {
             inner: glwe_secret_key,
             post_compression_secret_key: post_compression_glwe_secret_key,
         },
-        CompressionKey {
-            inner: compression_key,
-            buffers: compression::CompressionBuffers { cuda_pksk: cuda_pksk },
-        },
+        create_private_compresion_key_return(compression_key)
     ));
 }
 
@@ -468,11 +500,25 @@ static PARAMS_8B_2048: &str = r#"{
 fn default_params() -> String {
     PARAMS_8B_2048_NEW.to_string()
 }
-/// A Python module implemented in Rust. The name of this function must match
-/// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
-/// import the module.
-#[pymodule]
-fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
+
+#[cfg(feature="cuda")]
+#[pyfunction]
+fn is_cuda_available() -> PyResult<bool> {
+    return Ok(core_is_cuda_available());
+}
+
+#[cfg(feature="cuda")]
+#[pyfunction]
+fn is_cuda_enabled() -> PyResult<bool> {
+    return Ok(true);
+}
+#[cfg(not(feature="cuda"))]
+#[pyfunction]
+fn is_cuda_enabled() -> PyResult<bool> {
+    return Ok(false);
+}
+
+fn concrete_ml_extensions_base(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Maybe we could put this in a loop?
     m.add_function(wrap_pyfunction!(create_private_key, m)?)?;
     m.add_function(wrap_pyfunction!(encrypt, m)?)?;
@@ -482,6 +528,7 @@ fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(decrypt_matrix, m)?)?;
     m.add_function(wrap_pyfunction!(matrix_multiplication, m)?)?;
     m.add_function(wrap_pyfunction!(default_params, m)?)?;
+    m.add_function(wrap_pyfunction!(is_cuda_enabled, m)?)?;
     m.add_class::<CipherText>()?;
     m.add_class::<CompressedResultCipherText>()?;
     m.add_class::<CompressionKey>()?;
@@ -489,4 +536,21 @@ fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<EncryptedMatrix>()?;
     // m.add_class::<PrivateKey>()?;
     Ok(())
+
 }
+/// A Python module implemented in Rust. The name of this function must match
+/// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
+/// import the module.
+#[cfg(feature="cuda")]
+#[pymodule]
+fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(is_cuda_available, m)?)?;
+    concrete_ml_extensions_base(m)
+}
+
+#[cfg(not(feature="cuda"))]
+#[pymodule]
+fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    concrete_ml_extensions_base(m)
+}
+

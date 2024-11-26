@@ -1,4 +1,6 @@
 use tfhe::core_crypto::prelude::*;
+//use tfhe::core_crypto::gpu::bin
+//cuda_fourier_polynomial_mul
 
 #[allow(dead_code)]
 /// Computes a dot product in a GLWE's last coefficient, with the clear input in the normally
