@@ -1,5 +1,5 @@
 import pytest
-import concrete_ml_extensions as deai
+import concrete_ml_extensions as fhext
 import numpy as np
 import json
 import time
@@ -45,26 +45,26 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     # Change the encoding to push the inputs and the result
     # as much as possible to the left in the MSBs
     # in order to avoid noise corruption
-    params = json.loads(deai.default_params()) #crypto_params.serialize())
+    params = json.loads(fhext.default_params()) #crypto_params.serialize())
     params["bits_reserved_for_computation"] = (
         n_bits_compute + 1
     )  # +1 for sign bit if needed
 #    params["packing_ks_level"] = 1
-    modified_crypto_params = deai.MatmulCryptoParameters.deserialize(json.dumps(params))
+    modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(json.dumps(params))
 
-    pkey, ckey = deai.create_private_key(modified_crypto_params)
+    pkey, ckey = fhext.create_private_key(modified_crypto_params)
 
     # Need to convert to uint64 since this is what is handled
     # by the crypto
     a = a.astype(CRYPTO_DTYPE)
     b = b.astype(CRYPTO_DTYPE)
 
-    encrypted_matrix = deai.encrypt_matrix(
+    encrypted_matrix = fhext.encrypt_matrix(
         pkey=pkey, crypto_params=modified_crypto_params, data=a
     )
     start_time = time.time()
 
-    matmul_result = deai.matrix_multiplication(
+    matmul_result = fhext.matrix_multiplication(
         encrypted_matrix=encrypted_matrix, data=b, compression_key=ckey
     )
 
@@ -76,7 +76,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
         inner_size_b % polynomial_size or polynomial_size
     )
 
-    decrypted_result = deai.decrypt_matrix(
+    decrypted_result = fhext.decrypt_matrix(
         matmul_result,
         pkey,
         modified_crypto_params,

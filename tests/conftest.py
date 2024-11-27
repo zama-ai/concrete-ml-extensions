@@ -1,5 +1,5 @@
 import pytest
-import concrete_ml_extensions as deai
+import concrete_ml_extensions as fhext
 import numpy as np
 import time
 import json
@@ -36,11 +36,11 @@ PARAMS_NONOISE_8B_2048 = {
 
 @pytest.fixture
 def crypto_params():
-    return deai.MatmulCryptoParameters.deserialize(json.dumps(PARAMS_8B_2048))
+    return fhext.MatmulCryptoParameters.deserialize(json.dumps(PARAMS_8B_2048))
 
 @pytest.fixture
 def crypto_params_nonoise():
-    return deai.MatmulCryptoParameters.deserialize(json.dumps(PARAMS_NONOISE_8B_2048))
+    return fhext.MatmulCryptoParameters.deserialize(json.dumps(PARAMS_NONOISE_8B_2048))
 
 class Timing:
     def __init__(self, message=""):

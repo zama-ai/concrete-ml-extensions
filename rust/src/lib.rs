@@ -8,6 +8,7 @@ use numpy::{Ix1, Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyBytes, PyString};
 use serde::{Deserialize, Serialize};
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::is_cuda_available as core_is_cuda_available;
 use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
@@ -105,6 +106,23 @@ struct CpuCompressionKey {
     buffers: compression::CpuCompressionBuffers<Scalar>,
 }
 
+#[pymethods]
+impl CpuCompressionKey {
+    fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
+        return Ok(
+            PyBytes::new_bound(py, bincode::serialize(&self.inner).unwrap().as_slice()).into(),
+        );
+    }
+
+    #[staticmethod]
+    fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CpuCompressionKey> {
+        let deserialized: CpuCompressionKey =
+            bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
+
+        return Ok(deserialized);
+    }
+}
+
 #[cfg(feature = "cuda")]
 #[pyclass]
 struct CudaCompressionKey {
@@ -161,20 +179,39 @@ impl CipherText {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-#[pyclass]
-struct CompressedResultCipherText {
-    inner: Vec<prelude::compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext<Scalar>>,
-}
-
 #[pymethods]
-impl CompressedResultCipherText {
+impl EncryptedMatrix {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
         return Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into());
     }
     #[staticmethod]
-    fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CompressedResultCipherText> {
-        let deserialized: CompressedResultCipherText =
+    fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<EncryptedMatrix> {
+        let deserialized: EncryptedMatrix =
+            bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
+        return Ok(deserialized);
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+//#[pyclass]
+struct CompressedResultCipherText {
+    inner: Vec<prelude::compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext<Scalar>>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+#[pyclass]
+struct CompressedResultEncryptedMatrix {
+    inner: Vec<CompressedResultCipherText>,
+}
+
+#[pymethods]
+impl CompressedResultEncryptedMatrix {
+    fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
+        return Ok(PyBytes::new_bound(py, bincode::serialize(&self).unwrap().as_slice()).into());
+    }
+    #[staticmethod]
+    fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CompressedResultEncryptedMatrix> {
+        let deserialized: CompressedResultEncryptedMatrix =
             bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
         return Ok(deserialized);
     }
@@ -423,7 +460,7 @@ fn cpu_matrix_multiplication(
     encrypted_matrix: &EncryptedMatrix,
     data: PyReadonlyArray<Scalar, Ix2>,
     compression_key: &CpuCompressionKey,
-) -> PyResult<Vec<CompressedResultCipherText>> {
+) -> PyResult<CompressedResultEncryptedMatrix> {
     let data_array = data.as_array();
 
     let data_columns: Vec<_> = data_array
@@ -483,17 +520,20 @@ fn cpu_matrix_multiplication(
         })
         .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
 
-    Ok(result_matrix?)
+    Ok(CompressedResultEncryptedMatrix {
+        inner: result_matrix?,
+    })
 }
 
 #[pyfunction]
 fn decrypt_matrix(
-    compressed_matrix: Vec<CompressedResultCipherText>,
+    compressed_matrix: CompressedResultEncryptedMatrix,
     private_key: &PrivateKey,
     crypto_params: &MatmulCryptoParameters,
     num_valid_glwe_values_in_last_ciphertext: usize,
 ) -> PyResult<Py<PyArray2<Scalar>>> {
     let decrypted_matrix: Vec<Vec<Scalar>> = compressed_matrix
+        .inner
         .iter()
         .map(|compressed_row| {
             internal_decrypt(
@@ -573,7 +613,7 @@ fn concrete_ml_extensions_base(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(default_params, m)?)?;
     m.add_function(wrap_pyfunction!(is_cuda_enabled, m)?)?;
     m.add_class::<CipherText>()?;
-    m.add_class::<CompressedResultCipherText>()?;
+    m.add_class::<CompressedResultEncryptedMatrix>()?;
     m.add_class::<CpuCompressionKey>()?;
     m.add_class::<MatmulCryptoParameters>()?;
     m.add_class::<EncryptedMatrix>()?;

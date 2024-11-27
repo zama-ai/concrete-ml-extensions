@@ -14,3 +14,8 @@ def matrix_multiplication(encrypted_matrix, data, compression_key):
     if is_cuda_enabled() and is_cuda_available():
         return cuda_matrix_multiplication(encrypted_matrix, data, compression_key)
     return cpu_matrix_multiplication(encrypted_matrix, data, compression_key)
+
+def deserialize_compression_key(data):
+    if is_cuda_enabled() and is_cuda_available():
+        return GpuCompressionKey.deserialize(data)
+    return CpuCompressionKey.deserialize(data)

@@ -1,5 +1,5 @@
 import pytest
-import concrete_ml_extensions as deai
+import concrete_ml_extensions as fhext
 import json
 from conftest import PARAMS_8B_2048
 import numpy as np
@@ -20,10 +20,10 @@ def test_crypto_params_load():
             "output_storage_ciphertext_modulus": 26
         }"""
 
-        deai.MatmulCryptoParameters.deserialize(json_str)
+        fhext.MatmulCryptoParameters.deserialize(json_str)
 
     json_str = json.dumps(PARAMS_8B_2048)
-    deai.MatmulCryptoParameters.deserialize(json_str)
+    fhext.MatmulCryptoParameters.deserialize(json_str)
 
 
 def test_crypto_params_save(crypto_params):
