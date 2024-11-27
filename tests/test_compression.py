@@ -14,9 +14,9 @@ def test_compression(inner_size):
     high = 2**(n_bits-1) if signed else 2**n_bits # randint high value is not included
 
     # Randint draws from [low, high).
-    a = np.random.randint(low, high, size=(inner_size,)).astype(np.uint64)
-    b = np.random.randint(low, high, size=(inner_size,)).astype(np.uint64)
-    
+    a = np.random.randint(low, high, size=(8, inner_size)).astype(np.uint64)
+    b = np.random.randint(low, high, size=(inner_size,inner_size)).astype(np.uint64)
+        
     params_dict = json.loads(deai.default_params());
     inner_size_rounded_input_poly = round_up(inner_size, params_dict["polynomial_size"])
     inner_size_rounded_output_poly = round_up(inner_size, params_dict["packing_ks_polynomial_size"])

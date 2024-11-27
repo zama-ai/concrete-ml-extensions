@@ -1,5 +1,7 @@
 #![allow(clippy::excessive_precision)]
 
+use std::marker::PhantomData;
+
 use tfhe::core_crypto::prelude::*;
 
 mod compression;
@@ -84,9 +86,21 @@ fn main() {
 
     let clear_2: Vec<Scalar> = (0..data.len()).map(|x| x as Scalar % 3).collect();
 
-    let result = encrypted_vector.dot(&clear_2);
+    let result_dot = encrypted_vector.dot(&clear_2);
+    let result_lwe = result_dot.as_lwe();
+    let mut result = LweCiphertextList::new(
+        0,
+        result_lwe.lwe_size(),
+        LweCiphertextCount(1),
+        result_lwe.ciphertext_modulus(),
+    );
+    result
+        .get_mut(0)
+        .as_mut()
+        .copy_from_slice(result_lwe.as_ref());
 
-    let compressed_results = compression_key.compress_ciphertexts_into_list(&[result]);
+    let buffers = compression::CpuCompressionBuffers::<Scalar> { _tmp: PhantomData };
+    let compressed_results = compression_key.cpu_compress_ciphertexts_into_list(&result, &buffers);
 
     let mut clear_dot = 0;
 

@@ -8,9 +8,9 @@ use numpy::{Ix1, Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyBytes, PyString};
 use serde::{Deserialize, Serialize};
+use tfhe::core_crypto::gpu::is_cuda_available as core_is_cuda_available;
 use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
-use tfhe::core_crypto::gpu::is_cuda_available as core_is_cuda_available;
 mod compression;
 mod computations;
 mod encryption;
@@ -98,41 +98,48 @@ impl MatmulCryptoParameters {
     }
 }
 
-//#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[pyclass]
-struct CompressionKey {
-    inner: compression::CompressionKey<Scalar>,    
-    buffers: compression::CompressionBuffers<Scalar>,
+struct CpuCompressionKey {
+    inner: compression::CompressionKey<Scalar>,
+    buffers: compression::CpuCompressionBuffers<Scalar>,
 }
 
+#[cfg(feature = "cuda")]
+#[pyclass]
+struct CudaCompressionKey {
+    inner: compression::CompressionKey<Scalar>,
+    buffers: compression::CudaCompressionBuffers<Scalar>,
+}
+
+#[cfg(feature = "cuda")]
 #[pymethods]
-impl CompressionKey {
+impl CudaCompressionKey {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
-        return Ok(PyBytes::new_bound(py, bincode::serialize(&self.inner).unwrap().as_slice()).into());
+        return Ok(
+            PyBytes::new_bound(py, bincode::serialize(&self.inner).unwrap().as_slice()).into(),
+        );
     }
 
-    #[cfg(feature = "cuda")]
     #[staticmethod]
-    fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CompressionKey> {
+    fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CudaCompressionKey> {
         let gpu_index = 0;
         let stream = CudaStreams::new_single_gpu(gpu_index);
 
         let deserialized: compression::CompressionKey<Scalar> =
             bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
 
-        let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&deserialized.packing_key_switching_key, &stream);
+        let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(
+            &deserialized.packing_key_switching_key,
+            &stream,
+        );
 
-        return Ok(CompressionKey{ inner: deserialized, buffers: compression::CompressionBuffers{ cuda_pksk: cuda_pksk,  _tmp:PhantomData  } });
-    }
-
-    #[cfg(not(feature = "cuda"))]
-    #[staticmethod]
-    fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CompressionKey> {
-        use std::marker::PhantomData;
-
-        let deserialized: compression::CompressionKey<Scalar> =
-            bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
-        return Ok(CompressionKey{ inner: deserialized, buffers: compression::CompressionBuffers::<Scalar>{ _tmp:PhantomData } });
+        return Ok(CudaCompressionKey {
+            inner: deserialized,
+            buffers: compression::CudaCompressionBuffers {
+                cuda_pksk: cuda_pksk,
+            },
+        });
     }
 }
 
@@ -173,32 +180,13 @@ impl CompressedResultCipherText {
     }
 }
 
-
-#[cfg(not(feature = "cuda"))]
-fn create_private_compresion_key_return(compression_key: compression::CompressionKey<Scalar>) -> CompressionKey {
-    CompressionKey {
-        inner: compression_key,
-        buffers: compression::CompressionBuffers::<Scalar>{ _tmp:PhantomData }
-    }
-}
-
-#[cfg(feature = "cuda")]
-fn create_private_compresion_key_return(compression_key: compression::CompressionKey<Scalar>) -> CompressionKey {
-
-    let gpu_index = 0;
-    let stream = CudaStreams::new_single_gpu(gpu_index);
-    let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&compression_key.packing_key_switching_key, &stream);
-
-    CompressionKey {
-        inner: compression_key,
-        buffers: compression::CompressionBuffers { cuda_pksk: cuda_pksk,  _tmp:PhantomData  },
-    }
-}
-
-#[pyfunction]
-fn create_private_key(
+fn create_private_key_internal(
     crypto_params: &MatmulCryptoParameters,
-) -> PyResult<(PrivateKey, CompressionKey)> {
+) -> (
+    GlweSecretKey<Vec<Scalar>>,
+    GlweSecretKey<Vec<Scalar>>,
+    compression::CompressionKey<Scalar>,
+) {
     // This could be a method to generate a private key object
     let mut seeder = new_seeder();
     let seeder = seeder.as_mut();
@@ -226,15 +214,62 @@ fn create_private_key(
             &mut secret_rng,
         );
     let glwe_secret_key_as_lwe_secret_key = glwe_secret_key.as_lwe_secret_key();
+
     let (post_compression_glwe_secret_key, compression_key) =
         compression::CompressionKey::new(&glwe_secret_key_as_lwe_secret_key, compression_params);
+
+    (
+        glwe_secret_key,
+        post_compression_glwe_secret_key,
+        compression_key,
+    )
+}
+
+#[pyfunction]
+fn cpu_create_private_key(
+    crypto_params: &MatmulCryptoParameters,
+) -> PyResult<(PrivateKey, CpuCompressionKey)> {
+    let (glwe_secret_key, post_compression_glwe_secret_key, compression_key) =
+        create_private_key_internal(crypto_params);
 
     return Ok((
         PrivateKey {
             inner: glwe_secret_key,
             post_compression_secret_key: post_compression_glwe_secret_key,
         },
-        create_private_compresion_key_return(compression_key)
+        CpuCompressionKey {
+            inner: compression_key,
+            buffers: compression::CpuCompressionBuffers::<Scalar> { _tmp: PhantomData },
+        },
+    ));
+}
+
+#[cfg(feature = "cuda")]
+#[pyfunction]
+fn cuda_create_private_key(
+    crypto_params: &MatmulCryptoParameters,
+) -> PyResult<(PrivateKey, CudaCompressionKey)> {
+    let (glwe_secret_key, post_compression_glwe_secret_key, compression_key) =
+        create_private_key_internal(crypto_params);
+
+    let gpu_index = 0;
+    let stream = CudaStreams::new_single_gpu(gpu_index);
+    let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(
+        &compression_key.packing_key_switching_key,
+        &stream,
+    );
+
+    return Ok((
+        PrivateKey {
+            inner: glwe_secret_key,
+            post_compression_secret_key: post_compression_glwe_secret_key,
+        },
+        CudaCompressionKey {
+            inner: compression_key,
+            buffers: compression::CudaCompressionBuffers {
+                cuda_pksk: cuda_pksk,
+            },
+        },
     ));
 }
 
@@ -297,15 +332,6 @@ fn internal_decrypt(
 }
 
 #[pyfunction]
-fn encrypt(
-    pkey: &PrivateKey,
-    crypto_params: &MatmulCryptoParameters,
-    data: PyReadonlyArray<Scalar, Ix1>,
-) -> PyResult<CipherText> {
-    internal_encrypt(pkey, crypto_params, data.as_array().as_slice().unwrap())
-}
-
-#[pyfunction]
 fn encrypt_matrix(
     pkey: &PrivateKey,
     crypto_params: &MatmulCryptoParameters,
@@ -323,11 +349,12 @@ fn encrypt_matrix(
     })
 }
 
+#[cfg(feature = "cuda")]
 #[pyfunction]
-fn matrix_multiplication(
+fn cuda_matrix_multiplication(
     encrypted_matrix: &EncryptedMatrix,
     data: PyReadonlyArray<Scalar, Ix2>,
-    compression_key: &CompressionKey,
+    compression_key: &CudaCompressionKey,
 ) -> PyResult<Vec<CompressedResultCipherText>> {
     let data_array = data.as_array();
 
@@ -336,11 +363,22 @@ fn matrix_multiplication(
         .map(|col| col.to_owned())
         .collect();
 
-    let poly_size_compress = compression_key.inner.packing_key_switching_key.output_polynomial_size(); 
+    let poly_size_compress = compression_key
+        .inner
+        .packing_key_switching_key
+        .output_polynomial_size();
     let lwe_size = LweSize(poly_size_compress.0 + 1);
     let lwe_count = LweCiphertextCount(data_columns.len());
 
-    let mut row_results2  = LweCiphertextList::new(0, lwe_size, lwe_count, compression_key.inner.packing_key_switching_key.ciphertext_modulus());
+    let mut row_results2 = LweCiphertextList::new(
+        0,
+        lwe_size,
+        lwe_count,
+        compression_key
+            .inner
+            .packing_key_switching_key
+            .ciphertext_modulus(),
+    );
 
     let result_matrix = encrypted_matrix
         .inner
@@ -348,22 +386,28 @@ fn matrix_multiplication(
         .map(|encrypted_row| {
             let now = Instant::now();
             let decompressed_row = encrypted_row.decompress();
-//            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
+            //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
 
-//            let now = Instant::now();
+            //            let now = Instant::now();
 
             data_columns
-                .par_iter().zip(row_results2.par_iter_mut())
+                .par_iter()
+                .zip(row_results2.par_iter_mut())
                 .for_each(|(data_col, mut result_out)| {
                     let data_col_slice = data_col.as_slice().unwrap();
-                    result_out.as_mut().copy_from_slice(decompressed_row.dot(data_col_slice).as_lwe().into_container());
+                    result_out.as_mut().copy_from_slice(
+                        decompressed_row
+                            .dot(data_col_slice)
+                            .as_lwe()
+                            .into_container(),
+                    );
                 });
 
-//            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
-            
+            //            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
+
             let compressed_row = compression_key
                 .inner
-                .compress_ciphertexts_into_list(&row_results2, &compression_key.buffers);
+                .cuda_compress_ciphertexts_into_list(&row_results2, &compression_key.buffers);
 
             Ok(CompressedResultCipherText {
                 inner: compressed_row,
@@ -374,70 +418,72 @@ fn matrix_multiplication(
     Ok(result_matrix?)
 }
 
-fn internal_dot_product(
-    ciphertext: &CipherText,
-    data: &[Scalar],
-) -> Result<crate::ml::EncryptedDotProductResult<Scalar>, PyErr> {
-    let result: crate::ml::EncryptedDotProductResult<Scalar> =
-        ciphertext.inner.decompress().dot(data);
-    Ok(result)
-}
-
 #[pyfunction]
-fn dot_product(
-    ciphertext: &CipherText,
-    data: PyReadonlyArray<Scalar, Ix1>,
-    compression_key: &CompressionKey,
-) -> PyResult<CompressedResultCipherText> {
-    let result = internal_dot_product(ciphertext, data.as_array().as_slice().unwrap())?;
+fn cpu_matrix_multiplication(
+    encrypted_matrix: &EncryptedMatrix,
+    data: PyReadonlyArray<Scalar, Ix2>,
+    compression_key: &CpuCompressionKey,
+) -> PyResult<Vec<CompressedResultCipherText>> {
+    let data_array = data.as_array();
 
-    let mut result_list = Vec::<EncryptedDotProductResult<Scalar>>::new();
-    for _ in 0..compression_key
+    let data_columns: Vec<_> = data_array
+        .axis_iter(Axis(1))
+        .map(|col| col.to_owned())
+        .collect();
+
+    let poly_size_compress = compression_key
         .inner
         .packing_key_switching_key
-        .output_polynomial_size()
-        .0
-    {
-        result_list.push(result.clone());
-    }
+        .output_polynomial_size();
+    let lwe_size = LweSize(poly_size_compress.0 + 1);
+    let lwe_count = LweCiphertextCount(data_columns.len());
 
-    let mut list: Vec<_> = Vec::with_capacity(result_list.len());
-    
-    for ct in result_list {
-        let ct = ct.as_lwe();
-        assert_eq!(
-            result.as_lwe().lwe_size(),
-            ct.lwe_size(),
-            "All ciphertexts do not have the same lwe size as the packing keyswitch key"
-        );
-     
-        list.extend(ct.as_ref());
-    }
-    
-    let ct_list = LweCiphertextList::from_container(list, result.as_lwe().lwe_size(), result.as_lwe().ciphertext_modulus());
+    let mut row_results2 = LweCiphertextList::new(
+        0,
+        lwe_size,
+        lwe_count,
+        compression_key
+            .inner
+            .packing_key_switching_key
+            .ciphertext_modulus(),
+    );
 
-    let compressed_results = compression_key
+    let result_matrix = encrypted_matrix
         .inner
-        .compress_ciphertexts_into_list(&ct_list, &compression_key.buffers);
+        .iter()
+        .map(|encrypted_row| {
+            let now = Instant::now();
+            let decompressed_row = encrypted_row.decompress();
+            //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
 
-    Ok(CompressedResultCipherText {
-        inner: compressed_results,
-    })
-}
+            //            let now = Instant::now();
 
-#[pyfunction]
-fn decrypt(
-    compressed_result: &CompressedResultCipherText,
-    private_key: &PrivateKey,
-    crypto_params: &MatmulCryptoParameters,
-    num_valid_glwe_values_in_last_ciphertext: usize,
-) -> PyResult<Vec<Scalar>> {
-    internal_decrypt(
-        compressed_result,
-        crypto_params,
-        private_key,
-        num_valid_glwe_values_in_last_ciphertext,
-    )
+            data_columns
+                .par_iter()
+                .zip(row_results2.par_iter_mut())
+                .for_each(|(data_col, mut result_out)| {
+                    let data_col_slice = data_col.as_slice().unwrap();
+                    result_out.as_mut().copy_from_slice(
+                        decompressed_row
+                            .dot(data_col_slice)
+                            .as_lwe()
+                            .into_container(),
+                    );
+                });
+
+            //            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
+
+            let compressed_row = compression_key
+                .inner
+                .cpu_compress_ciphertexts_into_list(&row_results2, &compression_key.buffers);
+
+            Ok(CompressedResultCipherText {
+                inner: compressed_row,
+            })
+        })
+        .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
+
+    Ok(result_matrix?)
 }
 
 #[pyfunction]
@@ -501,18 +547,18 @@ fn default_params() -> String {
     PARAMS_8B_2048_NEW.to_string()
 }
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 #[pyfunction]
 fn is_cuda_available() -> PyResult<bool> {
     return Ok(core_is_cuda_available());
 }
 
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 #[pyfunction]
 fn is_cuda_enabled() -> PyResult<bool> {
     return Ok(true);
 }
-#[cfg(not(feature="cuda"))]
+#[cfg(not(feature = "cuda"))]
 #[pyfunction]
 fn is_cuda_enabled() -> PyResult<bool> {
     return Ok(false);
@@ -520,37 +566,37 @@ fn is_cuda_enabled() -> PyResult<bool> {
 
 fn concrete_ml_extensions_base(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Maybe we could put this in a loop?
-    m.add_function(wrap_pyfunction!(create_private_key, m)?)?;
-    m.add_function(wrap_pyfunction!(encrypt, m)?)?;
-    m.add_function(wrap_pyfunction!(dot_product, m)?)?;
-    m.add_function(wrap_pyfunction!(decrypt, m)?)?;
+    m.add_function(wrap_pyfunction!(cpu_create_private_key, m)?)?;
     m.add_function(wrap_pyfunction!(encrypt_matrix, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt_matrix, m)?)?;
-    m.add_function(wrap_pyfunction!(matrix_multiplication, m)?)?;
+    m.add_function(wrap_pyfunction!(cpu_matrix_multiplication, m)?)?;
     m.add_function(wrap_pyfunction!(default_params, m)?)?;
     m.add_function(wrap_pyfunction!(is_cuda_enabled, m)?)?;
     m.add_class::<CipherText>()?;
     m.add_class::<CompressedResultCipherText>()?;
-    m.add_class::<CompressionKey>()?;
+    m.add_class::<CpuCompressionKey>()?;
     m.add_class::<MatmulCryptoParameters>()?;
     m.add_class::<EncryptedMatrix>()?;
     // m.add_class::<PrivateKey>()?;
     Ok(())
-
 }
+
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
-#[cfg(feature="cuda")]
+#[cfg(feature = "cuda")]
 #[pymodule]
 fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(cuda_create_private_key, m)?)?;
     m.add_function(wrap_pyfunction!(is_cuda_available, m)?)?;
+    m.add_function(wrap_pyfunction!(cuda_matrix_multiplication, m)?)?;
+    m.add_class::<CudaCompressionKey>()?;
+
     concrete_ml_extensions_base(m)
 }
 
-#[cfg(not(feature="cuda"))]
+#[cfg(not(feature = "cuda"))]
 #[pymodule]
 fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     concrete_ml_extensions_base(m)
 }
-

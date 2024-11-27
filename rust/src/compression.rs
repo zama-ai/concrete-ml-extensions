@@ -1,16 +1,17 @@
+use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 use tfhe::core_crypto::commons::math::random::CompressionSeed;
 use tfhe::core_crypto::entities::compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext;
 use tfhe::core_crypto::entities::packed_integers::PackedIntegers;
 use tfhe::core_crypto::fft_impl::common::modulus_switch;
 use tfhe::core_crypto::prelude::*;
-use std::marker::PhantomData;
 
-#[cfg(feature = "cuda")]
-use tfhe::core_crypto::prelude::misc::check_encrypted_content_respects_mod;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::algorithms::lwe_packing_keyswitch::cuda_keyswitch_lwe_ciphertext_list_into_glwe_ciphertext_async;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
+#[cfg(feature = "cuda")]
+use tfhe::core_crypto::prelude::misc::check_encrypted_content_respects_mod;
 
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
@@ -23,9 +24,13 @@ use tfhe::core_crypto::gpu::CudaStreams;
 //use std::fs::File;
 //use std::io::{BufWriter, Write};
 
-pub struct CompressionBuffers<Scalar: UnsignedInteger> {
-    #[cfg(feature = "cuda")]
+#[cfg(feature = "cuda")]
+pub struct CudaCompressionBuffers<Scalar: UnsignedInteger> {
     pub cuda_pksk: CudaLwePackingKeyswitchKey<Scalar>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CpuCompressionBuffers<Scalar: UnsignedInteger> {
     pub _tmp: PhantomData<Scalar>,
 }
 
@@ -187,10 +192,10 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
     }
 
     #[cfg(feature = "cuda")]
-    pub fn compress_ciphertexts_into_list<C: Container<Element = Scalar>>(
+    pub fn cuda_compress_ciphertexts_into_list<C: Container<Element = Scalar>>(
         &self,
         ciphertexts: &LweCiphertextList<C>, // &[crate::ml::EncryptedDotProductResult<Scalar>],
-        buffers: &CompressionBuffers<Scalar>,
+        buffers: &CudaCompressionBuffers<Scalar>,
     ) -> Vec<CompressedModulusSwitchedGlweCiphertext<Scalar>> {
         let lwe_pksk = &self.packing_key_switching_key;
 
@@ -210,25 +215,25 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
 
         let gpu_index = 0;
         let stream = CudaStreams::new_single_gpu(gpu_index);
-//        let cuda_pksk =  CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&lwe_pksk, &stream);
-
+        //        let cuda_pksk =
+        // CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&lwe_pksk, &stream);
 
         let result = ciphertexts
             .chunks(lwe_per_glwe.0)
             .map(|list| {
-/*
-                let mut f = BufWriter::new(File::create("/home/stoiana/lwe_rs.csv").expect("cannot open"));
-                for lwe_ct in list.iter() {
-                    for lwe_value in lwe_ct.as_ref().iter() {
-                        write!(f, "{:?},", lwe_value);
-                    }
-                    writeln!(f);
-                }
- */
+                /*
+                               let mut f = BufWriter::new(File::create("/home/stoiana/lwe_rs.csv").expect("cannot open"));
+                               for lwe_ct in list.iter() {
+                                   for lwe_value in lwe_ct.as_ref().iter() {
+                                       write!(f, "{:?},", lwe_value);
+                                   }
+                                   writeln!(f);
+                               }
+                */
                 let bodies_count = list.lwe_ciphertext_count();
 
-/**/
-//                let now = Instant::now();
+                /*  */
+                //                let now = Instant::now();
 
                 let d_input_lwe = CudaLweCiphertextList::from_lwe_ciphertext_list(&list, &stream);
 
@@ -254,56 +259,53 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
                     );
                 }
 
-
-               let output_glwe_list = d_output_glwe.to_glwe_ciphertext_list(&stream);
+                let output_glwe_list = d_output_glwe.to_glwe_ciphertext_list(&stream);
 
                 let binding = output_glwe_list.get(0);
                 let out_gpu = binding.as_view();
-//                println!("GPU TIME : {}ms", now.elapsed().as_millis());
-/**/
+                //                println!("GPU TIME : {}ms", now.elapsed().as_millis());
+                /*  */
 
-/*
-                let now = Instant::now();
+                /*
+                               let now = Instant::now();
 
 
-                let mut out = GlweCiphertext::new(
-                    Scalar::ZERO,
-                    glwe_size,
-                    polynomial_size,
-                    ciphertext_modulus,
-                );
-              // TODO: add primitives to avoid having to use list primitives when possible
-                par_keyswitch_lwe_ciphertext_list_and_pack_in_glwe_ciphertext(
-                    lwe_pksk, &list, &mut out,
-                );
+                               let mut out = GlweCiphertext::new(
+                                   Scalar::ZERO,
+                                   glwe_size,
+                                   polynomial_size,
+                                   ciphertext_modulus,
+                               );
+                             // TODO: add primitives to avoid having to use list primitives when possible
+                               par_keyswitch_lwe_ciphertext_list_and_pack_in_glwe_ciphertext(
+                                   lwe_pksk, &list, &mut out,
+                               );
 
-                println!("CPU TIME {}ms", now.elapsed().as_millis()); 
-  
-                for (cpu_val, gpu_val) in out_gpu.as_ref().iter().zip(out.as_ref().iter()) {
-                    if cpu_val != gpu_val {
-                        panic!("CPU GPU differs");
-                    }
-                }
- */
-//                let now = Instant::now();
+                               println!("CPU TIME {}ms", now.elapsed().as_millis());
+
+                               for (cpu_val, gpu_val) in out_gpu.as_ref().iter().zip(out.as_ref().iter()) {
+                                   if cpu_val != gpu_val {
+                                       panic!("CPU GPU differs");
+                                   }
+                               }
+                */
+                //                let now = Instant::now();
                 let compressed = CompressedModulusSwitchedGlweCiphertext::compress(
                     &out_gpu,
                     self.storage_log_modulus,
                     bodies_count,
                 );
-//                println!("COMPRESS TIME {}ms", now.elapsed().as_millis());
+                //                println!("COMPRESS TIME {}ms", now.elapsed().as_millis());
                 compressed
-
             })
             .collect();
         result
     }
 
-    #[cfg(not(feature = "cuda"))]
-    pub fn compress_ciphertexts_into_list<C: Container<Element = Scalar>>(
+    pub fn cpu_compress_ciphertexts_into_list<C: Container<Element = Scalar>>(
         &self,
         ciphertexts: &LweCiphertextList<C>,
-        buffers: &CompressionBuffers<Scalar>,
+        buffers: &CpuCompressionBuffers<Scalar>,
     ) -> Vec<CompressedModulusSwitchedGlweCiphertext<Scalar>> {
         let lwe_pksk = &self.packing_key_switching_key;
 
@@ -324,7 +326,6 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
         let result = ciphertexts
             .chunks(lwe_per_glwe.0)
             .map(|list| {
-
                 let bodies_count = list.lwe_ciphertext_count();
 
                 let mut out = GlweCiphertext::new(
@@ -333,7 +334,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
                     polynomial_size,
                     ciphertext_modulus,
                 );
-                
+
                 // TODO: add primitives to avoid having to use list primitives when possible
                 par_keyswitch_lwe_ciphertext_list_and_pack_in_glwe_ciphertext(
                     lwe_pksk, &list, &mut out,
@@ -349,5 +350,5 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
             })
             .collect();
         result
-    }    
+    }
 }
