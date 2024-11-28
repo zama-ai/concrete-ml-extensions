@@ -2,9 +2,8 @@
 
 // TODO: Implement something like Ix1 dimension handling for GLWECipherTexts
 
-use ml::EncryptedDotProductResult;
 use numpy::ndarray::Axis;
-use numpy::{Ix1, Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
+use numpy::{Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyBytes, PyString};
 use serde::{Deserialize, Serialize};
@@ -27,7 +26,7 @@ use tfhe::core_crypto::gpu::CudaStreams;
 
 // Private Key builder
 
-use std::time::Instant;
+//use std::time::Instant;
 
 type Scalar = u64;
 #[derive(Serialize, Deserialize, Clone)]
@@ -392,7 +391,7 @@ fn cuda_matrix_multiplication(
     encrypted_matrix: &EncryptedMatrix,
     data: PyReadonlyArray<Scalar, Ix2>,
     compression_key: &CudaCompressionKey,
-) -> PyResult<Vec<CompressedResultCipherText>> {
+) -> PyResult<CompressedResultEncryptedMatrix> {
     let data_array = data.as_array();
 
     let data_columns: Vec<_> = data_array
@@ -421,7 +420,7 @@ fn cuda_matrix_multiplication(
         .inner
         .iter()
         .map(|encrypted_row| {
-            let now = Instant::now();
+//            let now = Instant::now();
             let decompressed_row = encrypted_row.decompress();
             //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
 
@@ -452,7 +451,9 @@ fn cuda_matrix_multiplication(
         })
         .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
 
-    Ok(result_matrix?)
+    Ok(CompressedResultEncryptedMatrix {
+        inner: result_matrix?,
+    })
 }
 
 #[pyfunction]
@@ -489,7 +490,7 @@ fn cpu_matrix_multiplication(
         .inner
         .iter()
         .map(|encrypted_row| {
-            let now = Instant::now();
+//            let now = Instant::now();
             let decompressed_row = encrypted_row.decompress();
             //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
 
@@ -564,21 +565,6 @@ static PARAMS_8B_2048_NEW: &str = r#"{
     "packing_ks_polynomial_size": 2048,              
     "packing_ks_glwe_dimension": 1,       
     "output_storage_ciphertext_modulus": 19,
-    "pks_noise_distrubution_stdev": 8.095547030480235e-30
-}"#;
-
-static PARAMS_8B_2048: &str = r#"{
-    "bits_reserved_for_computation": 27,
-    "glwe_encryption_noise_distribution_stdev": 5.293956729894075e-23,
-    "encryption_glwe_dimension": 1,
-    "polynomial_size": 2048,
-    "ciphertext_modulus_bit_count": 64,
-    "input_storage_ciphertext_modulus": 39,
-    "packing_ks_level": 2, 
-    "packing_ks_base_log": 14,
-    "packing_ks_polynomial_size": 2048,              
-    "packing_ks_glwe_dimension": 1,       
-    "output_storage_ciphertext_modulus": 26,
     "pks_noise_distrubution_stdev": 8.095547030480235e-30
 }"#;
 

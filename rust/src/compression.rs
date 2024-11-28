@@ -201,8 +201,6 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
 
         let polynomial_size = lwe_pksk.output_polynomial_size();
         let ciphertext_modulus: CiphertextModulus<Scalar> = lwe_pksk.ciphertext_modulus();
-        let glwe_size = lwe_pksk.output_glwe_size();
-        let lwe_size = lwe_pksk.input_key_lwe_dimension().to_lwe_size();
 
         let lwe_per_glwe = self.lwe_per_glwe;
 
@@ -305,14 +303,13 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
     pub fn cpu_compress_ciphertexts_into_list<C: Container<Element = Scalar>>(
         &self,
         ciphertexts: &LweCiphertextList<C>,
-        buffers: &CpuCompressionBuffers<Scalar>,
+        _buffers: &CpuCompressionBuffers<Scalar>,
     ) -> Vec<CompressedModulusSwitchedGlweCiphertext<Scalar>> {
         let lwe_pksk = &self.packing_key_switching_key;
 
         let polynomial_size = lwe_pksk.output_polynomial_size();
         let ciphertext_modulus: CiphertextModulus<Scalar> = lwe_pksk.ciphertext_modulus();
         let glwe_size = lwe_pksk.output_glwe_size();
-        let lwe_size = lwe_pksk.input_key_lwe_dimension().to_lwe_size();
 
         let lwe_per_glwe = self.lwe_per_glwe;
 

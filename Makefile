@@ -6,6 +6,7 @@ CPU_COUNT=$(shell ./scripts/cpu_count.sh)
 RS_BUILD_TOOLCHAIN:=stable
 CARGO_RS_BUILD_TOOLCHAIN:=+$(RS_BUILD_TOOLCHAIN)
 CARGO_PROFILE?=release
+MIN_RUST_VERSION:=1.81.0
 export RUSTFLAGS?=-C target-cpu=native
 
 
@@ -20,7 +21,7 @@ rs_build_toolchain:
 .PHONY: install_rs_check_toolchain # Install the toolchain used for checks
 install_rs_check_toolchain:
 	@rustup toolchain list | grep -q "$(RS_CHECK_TOOLCHAIN)" || \
-	rustup toolchain install --profile default "$(RS_CHECK_TOOLCHAIN)" || \
+	rustup toolchain install -y --profile default "$(RS_CHECK_TOOLCHAIN)" || \
 	( echo "Unable to install $(RS_CHECK_TOOLCHAIN) toolchain, check your rustup installation. \
 	Rustup can be downloaded at https://rustup.rs/" && exit 1 )
 
