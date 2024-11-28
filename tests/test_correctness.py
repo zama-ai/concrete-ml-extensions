@@ -69,7 +69,8 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     )
 
     tot_server_time = time.time() - start_time
-    print(f"Server time without serialization {tot_server_time}s")
+    device = "cuda" if fhext.is_cuda_enabled() and fhext.is_cuda_available() else "cpu" 
+    print(f"Server time without serialization {tot_server_time}s on {device}")
 
     polynomial_size = params["polynomial_size"]
     num_valid_glwe_values_in_last_ciphertext = (
@@ -96,5 +97,5 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     diff = np.abs(
         high_bits_reference - high_bits
     )
-    print(np.sum(diff == 0))
+
     assert np.sum(diff == 0) >= inner_size - n_allow_err

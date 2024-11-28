@@ -72,11 +72,27 @@ jobs:
 
           python -m poetry install --all-extras --no-root
 
-      - name: Build package
+      - name: Build package CUDA
         run: 
           python -m poetry run maturin develop --release
 
-      - name: Run tests
+      - name: CUDA check
+        run:
+          nvidia-smi
+
+          python -c "import concrete_ml_extensions as fhext; print('CUDA enabled: ', fhext.is_cuda_enabled());"
+
+          python -c "import concrete_ml_extensions as fhext; print('CUDA available: ', fhext.is_cuda_available());"
+
+      - name: Run CUDA tests
+        run:
+          make pytest
+
+      - name: Build package CPU
+        run:
+          python -m poetry run maturin develop --no-default-features --release
+
+      - name: Run CPU tests
         run: 
           make pytest
 
