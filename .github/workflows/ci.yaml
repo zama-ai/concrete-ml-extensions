@@ -80,9 +80,7 @@ jobs:
         run:
           nvidia-smi
 
-          python -c "import concrete_ml_extensions as fhext; print('CUDA enabled: ', fhext.is_cuda_enabled());"
-
-          python -c "import concrete_ml_extensions as fhext; print('CUDA available: ', fhext.is_cuda_available());"
+          scripts/print_cuda_infos.sh
 
       - name: Run CUDA tests
         run:
