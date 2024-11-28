@@ -36,7 +36,7 @@ jobs:
         include:
           - os: ubuntu-22.04
             cuda: "12.2"
-            gcc: 9
+            gcc: 11
     env:
       CUDA_PATH: /usr/local/cuda-${{ matrix.cuda }}
 

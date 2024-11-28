@@ -2,4 +2,4 @@
 [backend.aws.single-t4-gpu]
 region = "us-east-1"
 image_id = "ami-06a04649d895d10e0"
-instance_type = "p2.xlarge"
+instance_type = "g4dn.8xlarge"
