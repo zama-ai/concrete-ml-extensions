@@ -133,7 +133,7 @@ jobs:
   teardown-ec2:
     name: Teardown EC2 instance (fast-tests)
     if: ${{ always() }}
-    needs: [ setup-ec2, build ]
+    needs: [ setup-ec2, linux-cuda, macos-and-linux-non-cuda ]
     runs-on: ubuntu-latest
     steps:
       - name: Stop instance
