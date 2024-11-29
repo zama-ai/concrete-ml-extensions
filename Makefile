@@ -78,3 +78,7 @@ build_dev_gpu:
 .PHONY: wheel_gpu
 wheel_gpu:
 	maturin build -m gpu/Cargo.toml --target-dir target_gpu --release
+
+.PHONY: check_version_is_consistent
+check_version_is_consistent:
+	poetry run python scripts/version_utils.py check-version --file-vars "rust/Cargo.toml:package.version"
