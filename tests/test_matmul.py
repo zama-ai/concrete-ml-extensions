@@ -1,5 +1,5 @@
 import time
-import concrete_ml_extensions as deai
+import concrete_ml_extensions as fhext
 import numpy as np
 import pytest
 from conftest import Timing, PARAMS_8B_2048
@@ -7,36 +7,36 @@ import json
 
 
 @pytest.mark.parametrize("size", [128, 512, 2048, 4096, 8192])
-def test_full_dot_product(size, crypto_params):
+def test_integration_compute_and_serialize(size, crypto_params):
     # Setup
     vec_length = size
     num_valid_glwe_values_in_last_ciphertext = size % 2048
-    values = np.ones((vec_length,), dtype=np.uint64)
-    other_values = np.arange(vec_length, dtype=np.uint64)
+    values = np.ones((1, vec_length), dtype=np.uint64)
+    other_values = np.ones((vec_length, vec_length), dtype=np.uint64)
 
     # Running everything with timings
     with Timing("keygen"):
-        pkey, ckey = deai.create_private_key(crypto_params)
+        pkey, ckey = fhext.create_private_key(crypto_params)
     with Timing("serialization compression key"):
         serialized_compression_key = ckey.serialize()
-    with Timing("serialization compression key"):
-        compression_key = deai.CompressionKey.deserialize(serialized_compression_key)
+    with Timing("de-serialization compression key"):
+        compression_key = fhext.deserialize_compression_key(serialized_compression_key)
     with Timing("encryption"):
-        ciphertext = deai.encrypt(pkey, crypto_params, values)
+        ciphertext = fhext.encrypt_matrix(pkey, crypto_params, values)
     with Timing("input serialization"):
         serialized_ciphertext = ciphertext.serialize()
     with Timing("input deserialization"):
-        ciphertext = deai.CipherText.deserialize(serialized_ciphertext)
-    with Timing("dot_prod"):
-        encrypted_result = deai.dot_product(ciphertext, other_values, ckey)
+        ciphertext = fhext.EncryptedMatrix.deserialize(serialized_ciphertext)
+    with Timing("matrix multiplication"):
+        encrypted_result = fhext.matrix_multiplication(ciphertext, other_values, ckey)
     with Timing("output serialization"):
         serialized_encrypted_result = encrypted_result.serialize()
     with Timing("output deserialization"):
-        encrypted_result = deai.CompressedResultCipherText.deserialize(
+        encrypted_result = fhext.CompressedResultEncryptedMatrix.deserialize(
             serialized_encrypted_result
         )
     with Timing("decryption"):
-        decrypted_result = deai.decrypt(
+        decrypted_result = fhext.decrypt_matrix(
             encrypted_result,
             pkey,
             crypto_params,
@@ -74,7 +74,7 @@ def test_matrix_multiplication(size, crypto_params):
     params["bits_reserved_for_computation"] = (
         max_bit_width_compute + 1
     )  # +1 for sign bit?
-    modified_crypto_params = deai.MatmulCryptoParameters.deserialize(json.dumps(params))
+    modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(json.dumps(params))
 
     # The number of valid GLWE values in the last ciphertext is the size of the matrix
     # or 2048 if the size is a multiple of 2048
@@ -84,25 +84,25 @@ def test_matrix_multiplication(size, crypto_params):
 
     # Running everything with timings
     with Timing("keygen"):
-        pkey, ckey = deai.create_private_key(modified_crypto_params)
+        pkey, ckey = fhext.create_private_key(modified_crypto_params)
     with Timing("serialization compression key"):
         serialized_compression_key = ckey.serialize()
     with Timing("deserialization compression key"):
-        compression_key = deai.CompressionKey.deserialize(serialized_compression_key)
+        compression_key = fhext.deserialize_compression_key(serialized_compression_key)
     with Timing("encryption"):
-        encrypted_matrix = deai.encrypt_matrix(
+        encrypted_matrix = fhext.encrypt_matrix(
             pkey=pkey, crypto_params=modified_crypto_params, data=values
         )
 
     with Timing("matrix multiplication"):
-        matmul_result = deai.matrix_multiplication(
+        matmul_result = fhext.matrix_multiplication(
             encrypted_matrix=encrypted_matrix,
             data=other_matrix.T,
             compression_key=compression_key,
         )
 
     with Timing("decryption"):
-        decrypted_result = deai.decrypt_matrix(
+        decrypted_result = fhext.decrypt_matrix(
             matmul_result,
             pkey,
             modified_crypto_params,
@@ -170,5 +170,5 @@ print(
 )
 
 if __name__ == "__main__":
-    test_full_dot_product()
+    test_integration_compute_and_serialize()
     test_matrix_multiplication()
