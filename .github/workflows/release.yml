@@ -53,7 +53,7 @@ jobs:
 
       - name: Check Release Version
         run: |
-        	poetry run python scripts/version_utils.py check-version --file-vars "rust/Cargo.toml:package.version" --version "${{ env.GIT_TAG }}"
+          poetry run python scripts/version_utils.py check-version --file-vars "rust/Cargo.toml:package.version" --version "${{ env.GIT_TAG }}"
 
       - name: Export CUDA variables
         if: ${{ !cancelled() }}
