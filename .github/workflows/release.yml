@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+  SLAB_PROFILE: single-t4-gpu
+  
 jobs:
   setup-ec2:
     name: Setup EC2 instance
@@ -49,7 +53,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: [3.8, 3.9, 3.10, 3.11, 3.12]
 
       - name: Check Release Version
         run: |
@@ -96,7 +100,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: [3.8, 3.9, 3.10, 3.11, 3.12]
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
