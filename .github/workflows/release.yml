@@ -123,7 +123,7 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --no-default-features --out dist --find-interpreter
+          args: --release --no-default-features --out dist -i python3.8 python3.9 python3.10 python3.11 python3.12
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
