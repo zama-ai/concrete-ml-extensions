@@ -337,10 +337,10 @@ def _check_version(pyproject_file, file_vars, version):
     if version is not None:
         if version.startswith("v"):
             version = version[1:]
-            
-        if new_version != version:
+
+        if len(version.strip()) > 0 and new_version != version:
             raise RuntimeError(
-                f"Versions does not match. Found version {version} but got {new_version}"
+                f"Versions does not match. Found version {new_version} but was checking for {version}"
             )
 
         print("Version found in files is correct.")
