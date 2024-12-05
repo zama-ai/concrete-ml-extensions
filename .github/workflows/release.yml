@@ -95,7 +95,6 @@ jobs:
           echo $LD_LIBRARY_PATH
           echo $GITHUB_PATH
           nvcc --version          
-          pkg-config --libs cuda
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
