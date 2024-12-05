@@ -47,7 +47,7 @@ jobs:
             gcc: 9
     
     env:
-      CUDA_PATH: /usr/local/cuda-${{ matrix.cuda }}
+      CUDA_PATH: /usr/local/cuda
 
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +63,7 @@ jobs:
       # You can test your matrix by printing the current Python version
       - name: Install dependencies
         run: 
-          cat /etc/lsb-release || echo "Not a UBUNTU image"
+          cat /etc/lsb-release
 
           sudo apt update && apt install -y build-essential
 
@@ -100,7 +100,7 @@ jobs:
           echo $CUDA_PATH
           echo $CUDA_HOME
           echo $LD_LIBRARY_PATH
-          echo $GITHUB_PATH
+          echo $GITHUB_PATH          
           nvcc --version          
 
       - name: Build wheels
