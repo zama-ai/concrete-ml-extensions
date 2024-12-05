@@ -102,6 +102,7 @@ jobs:
           args: --release --out dist -i python3.8 python3.9 python3.10 python3.11 python3.12
           sccache: 'true'
           manylinux: auto
+          container: sameli/manylinux2014_x86_64_cuda_12.3
 
       - name: Upload wheels
         uses: actions/upload-artifact@v4
