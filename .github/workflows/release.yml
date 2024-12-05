@@ -44,13 +44,22 @@ jobs:
         include:
           - os: ubuntu-22.04
             cuda: "12.2"
-            gcc: 9
+            gcc: 11
     
     env:
       CUDA_PATH: /usr/local/cuda
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check CUDA installed 1
+        run: |
+          echo $CUDA_PATH
+          echo $CUDA_HOME
+          echo $LD_LIBRARY_PATH
+          echo $GITHUB_PATH                    
+          cd scripts && mkdir build && cd build && cmake ../ && cd ../..
+
       - uses: actions/setup-python@v5
         with:
           python-version: |
@@ -60,20 +69,17 @@ jobs:
             3.11
             3.12
 
+      - name: Check CUDA installed 2
+        run: |
+          echo $CUDA_PATH
+          echo $CUDA_HOME
+          echo $LD_LIBRARY_PATH
+          echo $GITHUB_PATH                    
+          cd scripts && mkdir build2 && cd build2 && cmake ../ && cd ../..
+
       # You can test your matrix by printing the current Python version
       - name: Install dependencies
         run: 
-          sudo yum groupinstall "Development Tools"
-
-          wget https://cmake.org/files/v3.28/cmake-3.28.0-linux-x86_64.tar.gz
-          tar -xvzf cmake-3.28.0-linux-x86_64.tar.gz
-          cd cmake-3.28.0
-          ./bootstrap
-          make
-          sudo make install          
-
-          cmake --version
-
           python -m pip install --upgrade pip
 
           python -m pip install --root-user-action ignore "poetry==1.8.3"
@@ -101,14 +107,6 @@ jobs:
         uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa
         with:
           toolchain: stable
-
-      - name: Check CUDA installed
-        run: |
-          echo $CUDA_PATH
-          echo $CUDA_HOME
-          echo $LD_LIBRARY_PATH
-          echo $GITHUB_PATH          
-          nvcc --version          
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
