@@ -63,6 +63,10 @@ jobs:
       # You can test your matrix by printing the current Python version
       - name: Install dependencies
         run: 
+          cat /etc/lsb-release || echo "Not a UBUNTU image"
+
+          sudo apt update && apt install -y build-essential
+
           python -m pip install --upgrade pip
 
           python -m pip install --root-user-action ignore "poetry==1.8.3"
@@ -72,16 +76,6 @@ jobs:
       - name: Check Release Version
         run: |
           poetry run python scripts/version_utils.py check-version --file-vars "rust/Cargo.toml:package.version" --version "${{ env.GIT_TAG }}"
-
-      - name: Export gcc and g++ variables
-        if: ${{ !cancelled() }}
-        run: |
-          {
-            echo "CC=/usr/bin/gcc-${{ matrix.gcc }}";
-            echo "CXX=/usr/bin/g++-${{ matrix.gcc }}";
-            echo "CUDAHOSTCXX=/usr/bin/g++-${{ matrix.gcc }}";
-            echo "HOME=/home/ubuntu";
-          } >> "${GITHUB_ENV}"
 
       - name: Export CUDA variables
         if: ${{ !cancelled() }}

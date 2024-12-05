@@ -1,5 +1,5 @@
 # This file is parsed by Slab Zama's CI bot to handle AWS EC2 resources.
 [backend.aws.single-t4-gpu]
 region = "us-east-1"
-image_id = "ami-06a04649d895d10e0"
+image_id = "ami-0866a3c8686eaeeba"
 instance_type = "g6.xlarge"
