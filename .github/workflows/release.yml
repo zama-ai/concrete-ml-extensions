@@ -51,15 +51,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check CUDA installed 1
-        run: |
-          echo $CUDA_PATH
-          echo $CUDA_HOME
-          echo $LD_LIBRARY_PATH
-          echo $GITHUB_PATH                    
-          cd scripts && mkdir build && cd build && cmake ../ && cd ../..
-
       - uses: actions/setup-python@v5
         with:
           python-version: |
@@ -69,17 +60,13 @@ jobs:
             3.11
             3.12
 
-      - name: Check CUDA installed 2
-        run: |
-          echo $CUDA_PATH
-          echo $CUDA_HOME
-          echo $LD_LIBRARY_PATH
-          echo $GITHUB_PATH                    
-          cd scripts && mkdir build2 && cd build2 && cmake ../ && cd ../..
-
       # You can test your matrix by printing the current Python version
       - name: Install dependencies
         run: 
+          docker pull sameli/manylinux2014_x86_64_cuda_12.3
+          
+          docker images
+
           python -m pip install --upgrade pip
 
           python -m pip install --root-user-action ignore "poetry==1.8.3"
