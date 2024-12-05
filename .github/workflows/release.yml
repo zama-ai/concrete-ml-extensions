@@ -80,15 +80,22 @@ jobs:
           echo "$CUDA_PATH/bin" >> "${GITHUB_PATH}"
           echo "LD_LIBRARY_PATH=$CUDA_PATH/lib:$LD_LIBRARY_PATH" >> "${GITHUB_ENV}"
           echo "CUDACXX=/usr/local/cuda-${{ matrix.cuda }}/bin/nvcc" >> "${GITHUB_ENV}"
-          ls /usr/local
-          find / -name "nvcc*"
-          find / -name "*cuda*"
-          nvcc --version
 
       - name: Install latest stable
         uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa
         with:
           toolchain: stable
+
+      - name: Check CUDA installed
+        run: |
+          echo $CUDA_PATH
+          echo $LD_LIBRARY_PATH
+          echo $GITHUB_PATH
+          ls /usr/local
+          find /usr/local -name "nvcc*"
+          nvcc --version          
+          export PATH=$PATH:$GITHUB_PATH
+          nvcc --version
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
