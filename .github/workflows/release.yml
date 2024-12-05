@@ -44,7 +44,7 @@ jobs:
         include:
           - os: ubuntu-22.04
             cuda: "12.2"
-            gcc: 11
+            gcc: 9
     
     env:
       CUDA_PATH: /usr/local/cuda-${{ matrix.cuda }}
@@ -73,16 +73,27 @@ jobs:
         run: |
           poetry run python scripts/version_utils.py check-version --file-vars "rust/Cargo.toml:package.version" --version "${{ env.GIT_TAG }}"
 
+      - name: Export gcc and g++ variables
+        if: ${{ !cancelled() }}
+        run: |
+          {
+            echo "CC=/usr/bin/gcc-${{ matrix.gcc }}";
+            echo "CXX=/usr/bin/g++-${{ matrix.gcc }}";
+            echo "CUDAHOSTCXX=/usr/bin/g++-${{ matrix.gcc }}";
+            echo "HOME=/home/ubuntu";
+          } >> "${GITHUB_ENV}"
+
       - name: Export CUDA variables
         if: ${{ !cancelled() }}
         run: |
           echo "CUDA_HOME=$CUDA_PATH" >> "${GITHUB_ENV}"
           echo "CUDA_PATH=$CUDA_PATH" >> "${GITHUB_ENV}"
           echo "$CUDA_PATH/bin" >> "${GITHUB_PATH}"
-          echo "LD_LIBRARY_PATH=$CUDA_PATH/lib64:$LD_LIBRARY_PATH" >> "${GITHUB_ENV}"
+          echo "LD_LIBRARY_PATH=$CUDA_PATH/lib:$CUDA_PATH/lib64:$LD_LIBRARY_PATH" >> "${GITHUB_ENV}"
           echo "CUDACXX=/usr/local/cuda-${{ matrix.cuda }}/bin/nvcc" >> "${GITHUB_ENV}"
           echo 'export CUDA_MODULE_LOADER=EAGER' >> ~/.bashrc
           echo 'export PATH="$PATH:$CUDA_PATH/bin"' >> ~/.bashrc 
+          ls $CUDA_PATH/
           source ~/.bashrc 
 
       - name: Install latest stable
@@ -105,6 +116,7 @@ jobs:
           args: --release --out dist -i python3.8 python3.9 python3.10 python3.11 python3.12
           sccache: 'true'
           manylinux: auto
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
