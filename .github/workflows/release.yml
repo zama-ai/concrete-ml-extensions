@@ -78,8 +78,11 @@ jobs:
         run: |
           echo "CUDA_PATH=$CUDA_PATH" >> "${GITHUB_ENV}"
           echo "$CUDA_PATH/bin" >> "${GITHUB_PATH}"
-          echo "LD_LIBRARY_PATH=$CUDA_PATH/lib:$LD_LIBRARY_PATH" >> "${GITHUB_ENV}"
+          echo "LD_LIBRARY_PATH=$CUDA_PATH/lib64:$LD_LIBRARY_PATH" >> "${GITHUB_ENV}"
           echo "CUDACXX=/usr/local/cuda-${{ matrix.cuda }}/bin/nvcc" >> "${GITHUB_ENV}"
+          echo 'export CUDA_MODULE_LOADER=EAGER' >> ~/.bashrc
+          echo 'export PATH="$PATH:$CUDA_PATH/bin"' >> ~/.bashrc 
+          source ~/.bashrc 
 
       - name: Install latest stable
         uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa
@@ -91,11 +94,8 @@ jobs:
           echo $CUDA_PATH
           echo $LD_LIBRARY_PATH
           echo $GITHUB_PATH
-          ls /usr/local
-          find /usr/local -name "nvcc*"
           nvcc --version          
-          export PATH=$PATH:$GITHUB_PATH
-          nvcc --version
+          pkg-config --libs cuda
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
