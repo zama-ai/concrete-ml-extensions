@@ -63,15 +63,16 @@ jobs:
       # You can test your matrix by printing the current Python version
       - name: Install dependencies
         run: 
-          sudo alternatives --install /usr/local/bin/cmake cmake /usr/bin/cmake3 20 \
-              --slave /usr/local/bin/ctest ctest /usr/bin/ctest3 \
-              --slave /usr/local/bin/cpack cpack /usr/bin/cpack3 \
-              --slave /usr/local/bin/ccmake ccmake /usr/bin/ccmake3 \
-              --family cmake
+          sudo yum groupinstall "Development Tools"
+
+          wget https://cmake.org/files/v3.28/cmake-3.28.0-linux-x86_64.tar.gz
+          tar -xvzf cmake-3.28.0-linux-x86_64.tar.gz
+          cd cmake-3.28.0
+          ./bootstrap
+          make
+          sudo make install          
 
           cmake --version
-
-          sudo apt update && apt install -y build-essential
 
           python -m pip install --upgrade pip
 
