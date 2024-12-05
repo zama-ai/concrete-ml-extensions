@@ -76,6 +76,7 @@ jobs:
       - name: Export CUDA variables
         if: ${{ !cancelled() }}
         run: |
+          echo "CUDA_HOME=$CUDA_HOME" >> "${GITHUB_ENV}"
           echo "CUDA_PATH=$CUDA_PATH" >> "${GITHUB_ENV}"
           echo "$CUDA_PATH/bin" >> "${GITHUB_PATH}"
           echo "LD_LIBRARY_PATH=$CUDA_PATH/lib64:$LD_LIBRARY_PATH" >> "${GITHUB_ENV}"
@@ -92,6 +93,7 @@ jobs:
       - name: Check CUDA installed
         run: |
           echo $CUDA_PATH
+          echo $CUDA_HOME
           echo $LD_LIBRARY_PATH
           echo $GITHUB_PATH
           nvcc --version          
