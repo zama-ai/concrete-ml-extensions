@@ -19,6 +19,8 @@ use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
+#[cfg(feature = "cuda")]
+use tfhe::core_crypto::gpu::vec::GpuIndex;
 
 //use std::time::{Duration, Instant};
 //use std::fs::File;
@@ -212,7 +214,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
         );
 
         let gpu_index = 0;
-        let stream = CudaStreams::new_single_gpu(gpu_index);
+        let stream = CudaStreams::new_single_gpu(GpuIndex(gpu_index));
         //        let cuda_pksk =
         // CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&lwe_pksk, &stream);
 
