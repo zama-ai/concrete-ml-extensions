@@ -23,6 +23,8 @@ use std::marker::PhantomData;
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
+#[cfg(feature = "cuda")]
+use tfhe::core_crypto::gpu::vec::GpuIndex;
 
 // Private Key builder
 
@@ -141,7 +143,7 @@ impl CudaCompressionKey {
     #[staticmethod]
     fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CudaCompressionKey> {
         let gpu_index = 0;
-        let stream = CudaStreams::new_single_gpu(gpu_index);
+        let stream = CudaStreams::new_single_gpu(GpuIndex(gpu_index));
 
         let deserialized: compression::CompressionKey<Scalar> =
             bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
@@ -289,7 +291,7 @@ fn cuda_create_private_key(
         create_private_key_internal(crypto_params);
 
     let gpu_index = 0;
-    let stream = CudaStreams::new_single_gpu(gpu_index);
+    let stream = CudaStreams::new_single_gpu(GpuIndex(gpu_index));
     let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(
         &compression_key.packing_key_switching_key,
         &stream,

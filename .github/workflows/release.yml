@@ -11,35 +11,106 @@ on:
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+  SLAB_PROFILE: single-t4-gpu
+
 jobs:
-  linux:
-    runs-on: ${{ matrix.platform.runner }}
+  setup-ec2:
+    name: Setup EC2 instance
+    runs-on: ubuntu-latest
+    outputs:
+      runner-name: ${{ steps.start-instance.outputs.label }}
+    steps:
+      - name: Start instance
+        id: start-instance
+        uses: zama-ai/slab-github-runner@801df0b8db5ea2b06128b7476c652f5ed5f193a8
+        with:
+          mode: start
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          backend: aws
+          profile: ${{ env.SLAB_PROFILE }}
+
+  linux-cuda:
+    needs: [setup-ec2]
+    runs-on: ${{ needs.setup-ec2.outputs.runner-name }}  
     strategy:
+      fail-fast: false
+      # explicit include-based build matrix, of known valid options
       matrix:
-        platform:
-          - runner: ubuntu-latest
-            target: x86_64
-          - runner: ubuntu-latest
-            target: aarch64
+        python-version: ["3.8"] # We limit to 3.8 for now to limit time spent      
+        include:
+          - os: ubuntu-22.04
+            cuda: "12.2"
+            gcc: 11
+    
+    env:
+      CUDA_PATH: /usr/local/cuda
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: |
+            3.8
+            3.9
+            3.10
+            3.11
+            3.12
+
+      # You can test your matrix by printing the current Python version
+      - name: Install dependencies
+        run: 
+          docker pull sameli/manylinux2014_x86_64_cuda_12.3
+          
+          docker images
+
+          python -m pip install --upgrade pip
+
+          python -m pip install --root-user-action ignore "poetry==1.8.3"
+
+          python -m poetry install --all-extras --no-root
+
+      - name: Check Release Version
+        run: |
+          poetry run python scripts/version_utils.py check-version --file-vars "rust/Cargo.toml:package.version" --version "${{ env.GIT_TAG }}"
+
+      - name: Export CUDA variables
+        if: ${{ !cancelled() }}
+        run: |
+          echo "CUDA_HOME=$CUDA_PATH" >> "${GITHUB_ENV}"
+          echo "CUDA_PATH=$CUDA_PATH" >> "${GITHUB_ENV}"
+          echo "$CUDA_PATH/bin" >> "${GITHUB_PATH}"
+          echo "LD_LIBRARY_PATH=$CUDA_PATH/lib:$CUDA_PATH/lib64:$LD_LIBRARY_PATH" >> "${GITHUB_ENV}"
+          echo "CUDACXX=/usr/local/cuda-${{ matrix.cuda }}/bin/nvcc" >> "${GITHUB_ENV}"
+          echo 'export CUDA_MODULE_LOADER=EAGER' >> ~/.bashrc
+          echo 'export PATH="$PATH:$CUDA_PATH/bin"' >> ~/.bashrc 
+          ls $CUDA_PATH/
+          source ~/.bashrc 
+
+      - name: Install latest stable
+        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa
+        with:
+          toolchain: stable
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --out dist -i python3.8 python3.9 python3.10 python3.11 python3.12
           sccache: 'true'
           manylinux: auto
+          container: sameli/manylinux2014_x86_64_cuda_12.3
+
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
           name: wheels-linux-${{ matrix.platform.target }}
           path: dist
 
-  macos:
+  macos-and-linux-non-cuda:
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -48,30 +119,44 @@ jobs:
             target: x86_64
           - runner: macos-14
             target: aarch64
+          - runner: ubuntu-latest
+            target: aarch64
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: 3.x
+          python-version: |
+            3.8
+            3.9
+            3.10
+            3.11
+            3.12
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release --out dist --find-interpreter
+          args: --release --no-default-features --out dist -i python3.8 python3.9 python3.10 python3.11 python3.12
           sccache: 'true'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
-          name: wheels-macos-${{ matrix.platform.target }}
+          name: wheels-${{ matrix.platform.runner }}-${{ matrix.platform.target }}
           path: dist
   
   release:
     name: Release
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
-    needs: [linux, macos]
+    needs: [linux-cuda, macos-and-linux-non-cuda]
     steps:
       - uses: actions/download-artifact@v4
+      - name: Publish test
+        run: |
+          ls
+
+          echo Release uploaded to pypi
+
       - name: Publish to PyPI
         uses: PyO3/maturin-action@v1
         env:
@@ -79,3 +164,19 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
+
+  teardown-ec2:
+    name: Teardown EC2 instance (fast-tests)
+    if: ${{ always() }}
+    needs: [ setup-ec2, linux-cuda, macos-and-linux-non-cuda ]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Stop instance
+        id: stop-instance
+        uses: zama-ai/slab-github-runner@801df0b8db5ea2b06128b7476c652f5ed5f193a8
+        with:
+          mode: stop
+          github-token: ${{ secrets.SLAB_ACTION_TOKEN }}
+          slab-url: ${{ secrets.SLAB_BASE_URL }}
+          job-secret: ${{ secrets.JOB_SECRET }}
+          label: ${{ needs.setup-ec2.outputs.runner-name }}
