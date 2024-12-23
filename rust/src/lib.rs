@@ -21,7 +21,6 @@ use std::marker::PhantomData;
 
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
-#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::vec::GpuIndex;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;

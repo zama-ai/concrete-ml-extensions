@@ -17,7 +17,6 @@ use tfhe::core_crypto::prelude::misc::check_encrypted_content_respects_mod;
 use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
-#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::vec::GpuIndex;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
