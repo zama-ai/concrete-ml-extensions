@@ -41,7 +41,7 @@ test: install_rs_check_toolchain
 
 .PHONY: fmt # Format rust code
 fmt: install_rs_check_toolchain
-	cargo "$(CARGO_RS_CHECK_TOOLCHAIN)" fmt
+	cargo "$(CARGO_RS_CHECK_TOOLCHAIN)" fmt --manifest-path rust/Cargo.toml
 
 .PHONY: check_fmt # Check rust code format
 check_fmt: install_rs_check_toolchain

@@ -18,6 +18,8 @@ use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 #[cfg(feature = "cuda")]
+use tfhe::core_crypto::gpu::vec::GpuIndex;
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
 
 //use std::time::{Duration, Instant};
@@ -162,9 +164,9 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
         let mut seeder = new_seeder();
         let seeder = seeder.as_mut();
 
-        let mut secret_rng = SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
+        let mut secret_rng = SecretRandomGenerator::<DefaultRandomGenerator>::new(seeder.seed());
         let mut encryption_rng =
-            EncryptionRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed(), seeder);
+            EncryptionRandomGenerator::<DefaultRandomGenerator>::new(seeder.seed(), seeder);
 
         let post_packing_secret_key = allocate_and_generate_new_binary_glwe_secret_key(
             params.packing_ks_glwe_dimension,
@@ -212,7 +214,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
         );
 
         let gpu_index = 0;
-        let stream = CudaStreams::new_single_gpu(gpu_index);
+        let stream = CudaStreams::new_single_gpu(GpuIndex(gpu_index));
         //        let cuda_pksk =
         // CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&lwe_pksk, &stream);
 

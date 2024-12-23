@@ -22,6 +22,8 @@ use std::marker::PhantomData;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
 #[cfg(feature = "cuda")]
+use tfhe::core_crypto::gpu::vec::GpuIndex;
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
 
 // Private Key builder
@@ -141,7 +143,7 @@ impl CudaCompressionKey {
     #[staticmethod]
     fn deserialize(content: &Bound<'_, PyBytes>) -> PyResult<CudaCompressionKey> {
         let gpu_index = 0;
-        let stream = CudaStreams::new_single_gpu(gpu_index);
+        let stream = CudaStreams::new_single_gpu(GpuIndex(gpu_index));
 
         let deserialized: compression::CompressionKey<Scalar> =
             bincode::deserialize(&content.as_bytes().to_vec()).unwrap();
@@ -226,7 +228,7 @@ fn create_private_key_internal(
     // This could be a method to generate a private key object
     let mut seeder = new_seeder();
     let seeder = seeder.as_mut();
-    let mut secret_rng = SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
+    let mut secret_rng = SecretRandomGenerator::<DefaultRandomGenerator>::new(seeder.seed());
 
     let compression_params = compression::CompressionKeyParameters::<Scalar> {
         packing_ks_level: crypto_params.packing_ks_level,
@@ -289,7 +291,7 @@ fn cuda_create_private_key(
         create_private_key_internal(crypto_params);
 
     let gpu_index = 0;
-    let stream = CudaStreams::new_single_gpu(gpu_index);
+    let stream = CudaStreams::new_single_gpu(GpuIndex(gpu_index));
     let cuda_pksk = CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(
         &compression_key.packing_key_switching_key,
         &stream,
@@ -420,7 +422,7 @@ fn cuda_matrix_multiplication(
         .inner
         .iter()
         .map(|encrypted_row| {
-//            let now = Instant::now();
+            //            let now = Instant::now();
             let decompressed_row = encrypted_row.decompress();
             //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
 
@@ -490,7 +492,7 @@ fn cpu_matrix_multiplication(
         .inner
         .iter()
         .map(|encrypted_row| {
-//            let now = Instant::now();
+            //            let now = Instant::now();
             let decompressed_row = encrypted_row.decompress();
             //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
 
