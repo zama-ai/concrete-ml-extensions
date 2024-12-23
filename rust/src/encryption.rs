@@ -46,7 +46,7 @@ pub fn encrypt_slice_as_glwe<Scalar, KeyCont, NoiseDistribution>(
     bits_reserved_for_computation: usize,
     noise_distribution: NoiseDistribution,
     ciphertext_modulus: CiphertextModulus<Scalar>,
-    generator: &mut EncryptionRandomGenerator<ActivatedRandomGenerator>,
+    generator: &mut EncryptionRandomGenerator<DefaultRandomGenerator>,
 ) -> GlweCiphertextOwned<Scalar>
 where
     NoiseDistribution: Distribution,

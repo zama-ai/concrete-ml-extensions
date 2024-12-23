@@ -33,7 +33,7 @@ fn main() {
     // This could be a method to generate a private key object
     let mut seeder = new_seeder();
     let seeder = seeder.as_mut();
-    let mut secret_rng = SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
+    let mut secret_rng = SecretRandomGenerator::<DefaultRandomGenerator>::new(seeder.seed());
 
     let glwe_secret_key = allocate_and_generate_new_binary_glwe_secret_key(
         encryption_glwe_dimension,

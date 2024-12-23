@@ -18,6 +18,8 @@ use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 #[cfg(feature = "cuda")]
+use tfhe::core_crypto::gpu::vec::*;
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::vec::GpuIndex;
@@ -164,9 +166,9 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
         let mut seeder = new_seeder();
         let seeder = seeder.as_mut();
 
-        let mut secret_rng = SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
+        let mut secret_rng = SecretRandomGenerator::<DefaultRandomGenerator>::new(seeder.seed());
         let mut encryption_rng =
-            EncryptionRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed(), seeder);
+            EncryptionRandomGenerator::<DefaultRandomGenerator>::new(seeder.seed(), seeder);
 
         let post_packing_secret_key = allocate_and_generate_new_binary_glwe_secret_key(
             params.packing_ks_glwe_dimension,

@@ -22,6 +22,8 @@ use std::marker::PhantomData;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
 #[cfg(feature = "cuda")]
+use tfhe::core_crypto::gpu::vec::*;
+#[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::vec::GpuIndex;
@@ -228,7 +230,7 @@ fn create_private_key_internal(
     // This could be a method to generate a private key object
     let mut seeder = new_seeder();
     let seeder = seeder.as_mut();
-    let mut secret_rng = SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
+    let mut secret_rng = SecretRandomGenerator::<DefaultRandomGenerator>::new(seeder.seed());
 
     let compression_params = compression::CompressionKeyParameters::<Scalar> {
         packing_ks_level: crypto_params.packing_ks_level,
@@ -422,7 +424,7 @@ fn cuda_matrix_multiplication(
         .inner
         .iter()
         .map(|encrypted_row| {
-//            let now = Instant::now();
+            //            let now = Instant::now();
             let decompressed_row = encrypted_row.decompress();
             //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
 
@@ -492,7 +494,7 @@ fn cpu_matrix_multiplication(
         .inner
         .iter()
         .map(|encrypted_row| {
-//            let now = Instant::now();
+            //            let now = Instant::now();
             let decompressed_row = encrypted_row.decompress();
             //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
 
