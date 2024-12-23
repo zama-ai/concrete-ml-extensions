@@ -7,8 +7,14 @@ license = "BSD-3-Clause-Clear"
 homepage = "https://zama.ai"
 
 [lib]
-name="concrete_ml_extensions"
-crate-type = ["cdylib"]
+name = "concrete_ml_extensions"
+path = "src/lib_switcher.rs"
+crate-type = ["cdylib", "staticlib"]
+
+[[bin]]
+# This can be whatever name makes sense for your project, but the rest of this tutorial assumes uniffi-bindgen.
+name = "uniffi-bindgen"
+path = "src/uniffi-bindgen.rs"
 
 [profile.release]
 lto = "fat"
@@ -28,12 +34,16 @@ debug-assertions = false
 rayon = "1"
 serde = { version = "1.0", features = ["derive"] }
 bincode = "1"
-pyo3 = { version = "0.21.0", features = ["extension-module", "generate-import-lib"] }
-numpy = "0.21"
+pyo3 = { version = "0.21.0", features = ["extension-module", "generate-import-lib"], optional = true}
+numpy = { version = "0.21", optional = true }
 serde_json = "1.0"
 #tfhe = "0.11.1"
 #tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "x86_64-unix", "gpu" ] }
 #tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", features = ["integer", "gpu"] }
+uniffi = { version = "0.28", optional = true }
+
+[build-dependencies]
+uniffi = { version = "0.28", features = [ "build" ] }
 
 [target.'cfg(all(target_arch = "x86_64", not(target_vendor="apple")) )'.dependencies]
 tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", features = ["integer", "gpu"] }
@@ -44,3 +54,4 @@ tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", featu
 [features]
 default = ["cuda"]
 cuda = []
+use_lib2 = ["uniffi"]
