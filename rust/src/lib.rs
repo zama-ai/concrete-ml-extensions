@@ -25,6 +25,8 @@ use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingK
 use tfhe::core_crypto::gpu::vec::*;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
+#[cfg(feature = "cuda")]
+use tfhe::core_crypto::gpu::vec::GpuIndex;
 
 // Private Key builder
 

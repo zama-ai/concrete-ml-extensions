@@ -5,15 +5,18 @@ __version__ = "0.1.4"
 
 from .concrete_ml_extensions import *
 
+
 def create_private_key(crypto_params):
     if is_cuda_enabled() and is_cuda_available():
         return cuda_create_private_key(crypto_params)
     return cpu_create_private_key(crypto_params)
 
+
 def matrix_multiplication(encrypted_matrix, data, compression_key):
     if is_cuda_enabled() and is_cuda_available():
         return cuda_matrix_multiplication(encrypted_matrix, data, compression_key)
     return cpu_matrix_multiplication(encrypted_matrix, data, compression_key)
+
 
 def deserialize_compression_key(data):
     if is_cuda_enabled() and is_cuda_available():

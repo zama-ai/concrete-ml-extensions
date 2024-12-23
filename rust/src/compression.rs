@@ -21,6 +21,8 @@ use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 use tfhe::core_crypto::gpu::vec::*;
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::CudaStreams;
+#[cfg(feature = "cuda")]
+use tfhe::core_crypto::gpu::vec::GpuIndex;
 
 //use std::time::{Duration, Instant};
 //use std::fs::File;
