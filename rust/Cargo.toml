@@ -32,7 +32,7 @@ pyo3 = { version = "0.21.0", features = ["extension-module", "generate-import-li
 numpy = "0.21"
 serde_json = "1.0"
 #tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "x86_64-unix", "gpu" ] }
-tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7" }
+tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", features = ["integer"] }
 
 #[target.'cfg(target_arch = "x86_64")'.dependencies.tfhe]
 #features = ["x86_64-unix", "gpu"]

@@ -5,7 +5,7 @@
 use numpy::ndarray::Axis;
 use numpy::{Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
-use pyo3::types::{PyBytes, PyString};
+use pyo3::types::{PyBytes, PyString, PyTuple};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::is_cuda_available as core_is_cuda_available;
@@ -17,7 +17,18 @@ mod encryption;
 mod ml;
 use pyo3::prelude::*;
 use rayon::prelude::*;
+use tfhe::shortint::ClassicPBSParameters;
 use std::marker::PhantomData;
+
+use tfhe::prelude::FheTryEncrypt;
+use tfhe::{
+    generate_keys, set_server_key, ClientKey, ConfigBuilder, FheInt8, FheUint8, ServerKey,
+    Unversionize, Versionize, CpuFheUint8Array, CpuFheInt8Array,
+};
+
+use tfhe::safe_serialization::{safe_deserialize, safe_serialize};
+
+const BLOCK_PARAMS: ClassicPBSParameters = tfhe::shortint::parameters::PARAM_MESSAGE_2_CARRY_3_KS_PBS_GAUSSIAN_2M64;
 
 #[cfg(feature = "cuda")]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
@@ -602,6 +613,8 @@ fn concrete_ml_extensions_base(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(cpu_matrix_multiplication, m)?)?;
     m.add_function(wrap_pyfunction!(default_params, m)?)?;
     m.add_function(wrap_pyfunction!(is_cuda_enabled, m)?)?;
+    m.add_function(wrap_pyfunction!(encrypt_serialize_u8_radix_2d, m)?)?;
+    m.add_function(wrap_pyfunction!(keygen_radix, m)?)?;    
     m.add_class::<CipherText>()?;
     m.add_class::<CompressedResultEncryptedMatrix>()?;
     m.add_class::<CpuCompressionKey>()?;
@@ -629,4 +642,55 @@ fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
 #[pymodule]
 fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     concrete_ml_extensions_base(m)
+}
+
+const SERIALIZE_SIZE_LIMIT: u64 = 1_000_000_000;
+
+#[pyfunction]
+fn encrypt_serialize_u8_radix_2d(py: Python, value: PyReadonlyArray<u8, Ix2>, client_key_ser: Py<PyBytes>) -> PyResult<Py<PyBytes>> {
+    let arr = value.as_array();
+    
+    let client_key: ClientKey = safe_deserialize(client_key_ser.as_bytes(py), SERIALIZE_SIZE_LIMIT).unwrap();
+
+    let shape = Vec::from(arr.shape());
+    let data_vec = arr.as_standard_layout()
+        .into_owned()
+        .into_raw_vec();
+
+    let cts = CpuFheUint8Array::try_encrypt(
+        (data_vec.as_slice(), shape), 
+        &client_key
+    ).unwrap();
+
+    let serialized = bincode::serialize(cts.container()).unwrap();
+
+    Ok(PyBytes::new_bound(py, serialized.as_slice()).into())
+}
+
+#[pyfunction]
+fn keygen_radix(py: Python<'_>) -> PyResult<Bound<PyTuple>> {
+    let config = ConfigBuilder::with_custom_parameters(BLOCK_PARAMS).build();
+
+    let (client_key, server_key) = generate_keys(config);
+    let (integer_ck, _, _, _) = client_key.clone().into_raw_parts();
+    let shortint_ck = integer_ck.into_raw_parts();
+    assert!(BLOCK_PARAMS.encryption_key_choice == EncryptionKeyChoice::Big);
+    let (glwe_secret_key, _, _) = shortint_ck.into_raw_parts();
+    let lwe_secret_key = glwe_secret_key.into_lwe_secret_key();
+
+    let mut ck_ser: Vec<u8> = vec![];
+    let _ = safe_serialize(&client_key, &mut ck_ser, SERIALIZE_SIZE_LIMIT);
+
+    let mut bsk_ser: Vec<u8> = vec![];
+    let _ = safe_serialize(&server_key, &mut bsk_ser, SERIALIZE_SIZE_LIMIT);
+
+    let mut lwe_ck_ser: Vec<u8> = vec![];
+    let _ = safe_serialize(&lwe_secret_key, &mut lwe_ck_ser, SERIALIZE_SIZE_LIMIT);
+
+    Ok(PyTuple::new_bound(py, vec![PyBytes::new_bound(py, ck_ser.as_slice()), PyBytes::new_bound(py, bsk_ser.as_slice()), PyBytes::new_bound(py, lwe_ck_ser.as_slice())]))
+}
+
+#[pyfunction]
+fn get_crypto_params_radix() {
+    BLOCK_PARAMS
 }
