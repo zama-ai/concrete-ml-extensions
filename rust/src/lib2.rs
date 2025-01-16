@@ -45,7 +45,8 @@ impl PrivateKey {
 /// Deserialize from a byte vector into a `PrivateKey` object.
 /// Must be a standalone function because UniFFI does not support static methods.
 #[uniffi::export]
-pub fn PrivateKey_deserialize(content: Vec<u8>) -> PrivateKey {
+#[allow(non_snake_case)]
+fn PrivateKey_deserialize(content: Vec<u8>) -> PrivateKey {
     bincode::deserialize(&content).unwrap()
 }
 
@@ -86,6 +87,7 @@ impl MatmulCryptoParameters {
 /// Deserialize from a JSON string into a `MatmulCryptoParameters` object.
 /// Must be a standalone function because UniFFI does not support static methods.
 #[uniffi::export]
+#[allow(non_snake_case)]
 fn MatmulCryptoParameters_deserialize(content: String) -> Result<MatmulCryptoParameters, String> {
     serde_json::from_str(&content).map_err(|e| format!("Can not deserialize cryptoparameters {}", e))
 }
@@ -112,6 +114,7 @@ impl CpuCompressionKey {
 /// Deserialize from a byte vector into a `CpuCompressionKey` object.
 /// Must be a standalone function because UniFFI does not support static methods.
 #[uniffi::export]
+#[allow(non_snake_case)]
 fn CpuCompressionKey_deserialize(content: Vec<u8>) -> Result<CpuCompressionKey, String> {
     bincode::deserialize(&content).map_err(|e| format!("Failed to deserialize: {}", e))
 }
@@ -137,6 +140,7 @@ impl CipherText {
 /// Deserialize from a byte vector into a `CipherText` object.
 /// Must be a standalone function because UniFFI does not support static methods.
 #[uniffi::export]
+#[allow(non_snake_case)]
 fn CipherText_deserialize(content: Vec<u8>) -> Result<CipherText, String> {
     bincode::deserialize(&content).map_err(|e| format!("Failed to deserialize: {}", e))
 }
@@ -161,6 +165,7 @@ impl EncryptedMatrix {
 /// Deserialize from a byte vector into an `EncryptedMatrix` object.
 /// Must be a standalone function because UniFFI does not support static methods.
 #[uniffi::export]
+#[allow(non_snake_case)]
 fn EncryptedMatrix_deserialize(content: Vec<u8>) -> Result<CipherText, String> {
     bincode::deserialize(&content).map_err(|e| format!("Failed to deserialize: {}", e))
 }
@@ -195,6 +200,7 @@ impl CompressedResultEncryptedMatrix {
 /// Deserialize from a byte vector into an `CompressedResultEncryptedMatrix` object.
 /// Must be a standalone function because UniFFI does not support static methods.
 #[uniffi::export]
+#[allow(non_snake_case)]
 fn CompressedResultEncryptedMatrix_deserialize(content: Vec<u8>) -> Result<CompressedResultEncryptedMatrix, String> {
     bincode::deserialize(&content).map_err(|e| format!("Failed to deserialize: {}", e))
 }
@@ -248,6 +254,7 @@ fn create_private_key_internal(
     )
 }
 
+// #[uniffi::export]
 fn cpu_create_private_key(
     crypto_params: &MatmulCryptoParameters,
 ) -> (PrivateKey, CpuCompressionKey) {
@@ -344,7 +351,7 @@ fn encrypt_matrix(
     })
 }
 
-#[uniffi::export]
+// #[uniffi::export]
 fn decrypt_matrix(
     compressed_matrix: CompressedResultEncryptedMatrix,
     private_key: &PrivateKey,
