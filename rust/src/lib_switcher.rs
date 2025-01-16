@@ -1,13 +1,16 @@
-// Conditionally include `lib2.rs` if the `use_lib2` feature is enabled.
+mod compression;
+mod computations;
+mod encryption;
+mod ml;
+
+#[cfg(not(feature = "use_lib2"))]
+mod lib;
+
 #[cfg(feature = "use_lib2")]
 mod lib2;
 
-// Include the default `lib.rs` if the `use_lib2` feature is not enabled.
 #[cfg(not(feature = "use_lib2"))]
-mod lib1;
-
-#[cfg(not(feature = "use_lib2"))]
-pub use self::lib1::*; // Re-export items from the default library.
+pub use self::lib::*; // Re-export items from old lib
 
 #[cfg(feature = "use_lib2")]
-pub use self::lib2::*; // Re-export items from `lib2`.
+pub use self::lib2::*; // Re-export items from new lib
