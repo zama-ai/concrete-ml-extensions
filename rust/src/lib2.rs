@@ -254,23 +254,31 @@ fn create_private_key_internal(
     )
 }
 
-// #[uniffi::export]
+
+// UniFFI does not support tuples, so we use this struct instead.
+#[derive(uniffi::Object)]
+struct CPUCreateKeysResult {
+    private_key: PrivateKey,
+    cpu_compression_key: CpuCompressionKey,
+}
+
+#[uniffi::export]
 fn cpu_create_private_key(
     crypto_params: &MatmulCryptoParameters,
-) -> (PrivateKey, CpuCompressionKey) {
+) -> CPUCreateKeysResult {
     let (glwe_secret_key, post_compression_glwe_secret_key, compression_key) =
         create_private_key_internal(crypto_params);
 
-    return (
-        PrivateKey {
+    return CPUCreateKeysResult {
+        private_key: PrivateKey {
             inner: glwe_secret_key,
             post_compression_secret_key: post_compression_glwe_secret_key,
         },
-        CpuCompressionKey {
+        cpu_compression_key: CpuCompressionKey {
             inner: compression_key,
             buffers: compression::CpuCompressionBuffers::<Scalar> { _tmp: PhantomData },
         },
-    );
+    };
 }
 
 fn internal_encrypt(
@@ -356,7 +364,7 @@ fn decrypt_matrix(
     compressed_matrix: CompressedResultEncryptedMatrix,
     private_key: &PrivateKey,
     crypto_params: &MatmulCryptoParameters,
-    num_valid_glwe_values_in_last_ciphertext: u64, // Change `usize` to `u64`
+    num_valid_glwe_values_in_last_ciphertext: u64, // Changed `usize` to `u64`
 ) -> Result<Vec<Vec<Scalar>>, String> {
     let decrypted_matrix: Vec<Vec<Scalar>> = compressed_matrix
         .inner
@@ -400,3 +408,4 @@ fn default_params() -> String {
 // • Avoid usize in UniFFI-exposed functions.
 // • Convert usize to u64/u32 when passing values across FFI boundaries.
 // • Use .as usize inside Rust code if needed.
+// Tuples: UniFFI does not support tuples, so you must use a struct instead.
