@@ -3,7 +3,6 @@
 use serde::{Deserialize, Serialize};
 use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
-use std::marker::PhantomData;
 
 use crate::compression;
 use crate::encryption;
@@ -51,7 +50,7 @@ impl fmt::Display for MyError {
 
 // ===== Private Key =====
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[derive(uniffi::Object)]
 struct PrivateKey {
     inner: prelude::GlweSecretKey<Vec<Scalar>>,
@@ -60,8 +59,10 @@ struct PrivateKey {
 
 #[uniffi::export]
 impl PrivateKey {
-    fn serialize(&self) -> Vec<u8> {
-        bincode::serialize(&self).unwrap()
+    /// Serialize into a byte vector.
+    fn serialize(&self) -> Result<Vec<u8>, MyError> {
+        bincode::serialize(&self)
+            .map_err(|e| MyError::SerializationFailed(e.to_string()))
     }
 }
 
@@ -123,11 +124,10 @@ fn MatmulCryptoParameters_deserialize(content: String) -> Result<MatmulCryptoPar
 
 // ===== CpuCompressionKey =====
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[derive(uniffi::Object)]
 struct CpuCompressionKey {
-    inner: compression::CompressionKey<Scalar>,
-    buffers: compression::CpuCompressionBuffers<Scalar>,
+    inner: compression::CompressionKey<Scalar>
 }
 
 #[uniffi::export]
@@ -298,6 +298,17 @@ struct CPUCreateKeysResult {
 }
 
 #[uniffi::export]
+impl CPUCreateKeysResult {
+    pub fn private_key(&self) -> PrivateKey {
+        self.private_key.clone()
+    }
+
+    pub fn cpu_compression_key(&self) -> CpuCompressionKey {
+        self.cpu_compression_key.clone()
+    }
+}
+
+#[uniffi::export]
 fn cpu_create_private_key(
     crypto_params: &MatmulCryptoParameters,
 ) -> CPUCreateKeysResult {
@@ -311,7 +322,6 @@ fn cpu_create_private_key(
         },
         cpu_compression_key: CpuCompressionKey {
             inner: compression_key,
-            buffers: compression::CpuCompressionBuffers::<Scalar> { _tmp: PhantomData },
         },
     };
 }
@@ -441,7 +451,7 @@ fn default_params() -> String {
 /*
 // Notable changes made to support UniFFI:
 
-1. `cpu_create_private_key()`: Replaced returned tuple by a struct.
+1. `cpu_create_private_key()`: Changed to return a struct rather than a tuple. Also, made both keys 'Clone'
 Reason: UniFFI does not support tuples.
 ```
 fn cpu_create_private_key(crypto_params: &MatmulCryptoParameters) -> CPUCreateKeysResult
