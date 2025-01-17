@@ -359,9 +359,9 @@ fn encrypt_matrix(
     })
 }
 
-// #[uniffi::export]
+#[uniffi::export]
 fn decrypt_matrix(
-    compressed_matrix: CompressedResultEncryptedMatrix,
+    compressed_matrix: &CompressedResultEncryptedMatrix, // Changed compressed_matrix to be borrowed
     private_key: &PrivateKey,
     crypto_params: &MatmulCryptoParameters,
     num_valid_glwe_values_in_last_ciphertext: u64, // Changed `usize` to `u64`
@@ -403,9 +403,32 @@ fn default_params() -> String {
     PARAMS_8B_2048_NEW.to_string()
 }
 
+// Notable changes made to support UniFFI:
 
-// === Lift Trait Implementation (for UniFFI) ===
-// • Avoid usize in UniFFI-exposed functions.
-// • Convert usize to u64/u32 when passing values across FFI boundaries.
-// • Use .as usize inside Rust code if needed.
-// Tuples: UniFFI does not support tuples, so you must use a struct instead.
+1. `cpu_create_private_key()`: Replaced returned tuple by a struct.
+Reason: UniFFI does not support tuples.
+```
+fn cpu_create_private_key(crypto_params: &MatmulCryptoParameters) -> CPUCreateKeysResult
+```
+
+2. `decrypt_matrix()`: Made matrix argument borrow instead of ownership.
+Reason: Workaround error `the trait `Lift<lib2::UniFfiTag>` is not implemented for `CompressedResultEncryptedMatrix``
+
+3. `decrypt_matrix()`: Made last param u64 instead of usize
+Reason: UniFFI Recommendation: Avoid usize in UniFFI-exposed functions, convert usize to u64/u32 when passing values across FFI boundaries. Use .as usize inside Rust code if needed.
+```
+fn decrypt_matrix(
+    compressed_matrix: &CompressedResultEncryptedMatrix, // Changed compressed_matrix to be borrowed
+    private_key: &PrivateKey,
+    crypto_params: &MatmulCryptoParameters,
+    num_valid_glwe_values_in_last_ciphertext: u64, // Changed `usize` to `u64`
+) -> Result<Vec<Vec<Scalar>>, String> {
+```
+
+4. Made several `deserialize` static methods free-floating functions instead, prefixed with type name.
+Reason: UniFFI doesn't support static functions.
+```
+fn PrivateKey_deserialize(content: Vec<u8>) -> PrivateKey {
+  bincode::deserialize(&content).unwrap()
+}
+```
