@@ -128,3 +128,19 @@ To fix, a workaround [suggested here](https://github.com/jessegrosjean/module-ma
 ### Troubleshooting:
     "failed to get iphoneos SDK path: SDK "iphoneos" cannot be located"
     => Ensure Xcode.app/Settings/Locations/Command Line Tools is set to the right version.
+
+
+## Fast Edit Loop
+```shell
+    cargo build --no-default-features --features "use_lib2" --lib --target aarch64-apple-ios-sim
+    
+    cargo run \
+        --bin uniffi-bindgen \
+        --no-default-features \
+        --features "uniffi/cli use_lib2" \
+        generate --library target/aarch64-apple-ios-sim/debug/libconcrete_ml_extensions.dylib \
+        --language swift \
+        --out-dir GENERATED/
+        
+    mv GENERATED/concrete_ml_extensionsFFI.modulemap GENERATED/module.modulemap
+```
