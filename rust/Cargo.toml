@@ -31,14 +31,9 @@ bincode = "1"
 pyo3 = { version = "0.21.0", features = ["extension-module", "generate-import-lib"] }
 numpy = "0.21"
 serde_json = "1.0"
+#tfhe = "0.11.1"
 #tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "x86_64-unix", "gpu" ] }
-tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", features = ["integer"] }
-
-#[target.'cfg(target_arch = "x86_64")'.dependencies.tfhe]
-#features = ["x86_64-unix", "gpu"]
-
-#[target.'cfg(target_arch = "aarch64")'.dependencies.tfhe]
-#features = ["aarch64-unix"]
+tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", features = ["integer", "gpu"] }
 
 [features]
 default = ["cuda"]
