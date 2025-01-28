@@ -43,4 +43,4 @@ tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", featu
 
 [features]
 default = ["cuda"]
-cuda = ["tfhe/gpu"]
+cuda = []

@@ -7,7 +7,7 @@ use numpy::{Ix2, PyArray, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyBytes, PyString, PyTuple};
 use serde::{Deserialize, Serialize};
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::is_cuda_available as core_is_cuda_available;
 use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
@@ -29,13 +29,13 @@ use tfhe::safe_serialization::{safe_deserialize, safe_serialize};
 const BLOCK_PARAMS: ClassicPBSParameters =
     tfhe::shortint::parameters::PARAM_MESSAGE_2_CARRY_3_KS_PBS_GAUSSIAN_2M64;
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::vec::GpuIndex;
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::vec::*;
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::CudaStreams;
 
 // Private Key builder
@@ -136,14 +136,14 @@ impl CpuCompressionKey {
     }
 }
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 #[pyclass]
 struct CudaCompressionKey {
     inner: compression::CompressionKey<Scalar>,
     buffers: compression::CudaCompressionBuffers<Scalar>,
 }
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 #[pymethods]
 impl CudaCompressionKey {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
@@ -294,7 +294,7 @@ fn cpu_create_private_key(
     ));
 }
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 #[pyfunction]
 fn cuda_create_private_key(
     crypto_params: &MatmulCryptoParameters,
@@ -399,7 +399,7 @@ fn encrypt_matrix(
     })
 }
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 #[pyfunction]
 fn cuda_matrix_multiplication(
     encrypted_matrix: &EncryptedMatrix,
@@ -587,13 +587,13 @@ fn default_params() -> String {
     PARAMS_8B_2048_NEW.to_string()
 }
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 #[pyfunction]
 fn is_cuda_available() -> PyResult<bool> {
     return Ok(core_is_cuda_available());
 }
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 #[pyfunction]
 fn is_cuda_enabled() -> PyResult<bool> {
     return Ok(true);
@@ -636,7 +636,7 @@ fn concrete_ml_extensions_base(m: &Bound<'_, PyModule>) -> PyResult<()> {
 /// A Python module implemented in Rust. The name of this function must match
 /// the `lib.name` setting in the `Cargo.toml`, else Python will not be able to
 /// import the module.
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 #[pymodule]
 fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(cuda_create_private_key, m)?)?;

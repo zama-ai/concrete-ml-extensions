@@ -6,29 +6,29 @@ use tfhe::core_crypto::entities::packed_integers::PackedIntegers;
 use tfhe::core_crypto::fft_impl::common::modulus_switch;
 use tfhe::core_crypto::prelude::*;
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::algorithms::lwe_packing_keyswitch::cuda_keyswitch_lwe_ciphertext_list_into_glwe_ciphertext_async;
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::prelude::misc::check_encrypted_content_respects_mod;
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::vec::GpuIndex;
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::vec::*;
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::CudaStreams;
 
 //use std::time::{Duration, Instant};
 //use std::fs::File;
 //use std::io::{BufWriter, Write};
 
-#[cfg(feature = "cuda")]
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 pub struct CudaCompressionBuffers<Scalar: UnsignedInteger> {
     pub cuda_pksk: CudaLwePackingKeyswitchKey<Scalar>,
 }
@@ -195,7 +195,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
         (post_packing_secret_key, glwe_compression_key)
     }
 
-    #[cfg(feature = "cuda")]
+    #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
     pub fn cuda_compress_ciphertexts_into_list<C: Container<Element = Scalar>>(
         &self,
         ciphertexts: &LweCiphertextList<C>, // &[crate::ml::EncryptedDotProductResult<Scalar>],
