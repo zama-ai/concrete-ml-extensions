@@ -254,8 +254,7 @@ fn create_private_key_internal(
     // This could be a method to generate a private key object
     let mut seeder = new_seeder();
     let seeder = seeder.as_mut();
-    let mut secret_rng = SecretRandomGenerator::<ActivatedRandomGenerator>::new(seeder.seed());
-
+    let mut secret_rng = SecretRandomGenerator::<DefaultRandomGenerator>::new(seeder.seed());
     let compression_params = compression::CompressionKeyParameters::<Scalar> {
         packing_ks_level: crypto_params.packing_ks_level,
         packing_ks_base_log: crypto_params.packing_ks_base_log,

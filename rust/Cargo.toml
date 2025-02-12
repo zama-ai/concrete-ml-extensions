@@ -7,14 +7,9 @@ license = "BSD-3-Clause-Clear"
 homepage = "https://zama.ai"
 
 [lib]
-name = "concrete_ml_extensions"
+name="concrete_ml_extensions"
 path = "src/lib_switcher.rs"
 crate-type = ["cdylib", "staticlib"]
-
-[[bin]]
-# This can be whatever name makes sense for your project, but the rest of this tutorial assumes uniffi-bindgen.
-name = "uniffi-bindgen"
-path = "src/uniffi-bindgen.rs"
 
 [profile.release]
 lto = "fat"
@@ -46,7 +41,11 @@ tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "cec3d0e76b78272b
 uniffi = { version = "0.28", features = [ "build" ] }
 
 [features]
-default = ["cuda", "pybindings"]
-cuda = ["tfhe/gpu"]
-pybindings = ["pyo3", "numpy"]
-use_lib2 = ["uniffi"]
+default = ["cuda", "python"]
+cuda = []
+python = ["pyo3", "numpy"]
+use_lib2 = ["uniffi", "uniffi/cli"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/uniffi-bindgen.rs"

@@ -19,3 +19,5 @@ Cargo.lock
 .DS_Store
 rust/GENERATED
 xcuserdata
+
+.venv
