@@ -1,4 +1,9 @@
 use tfhe::core_crypto::commons::math::random::{Distribution, Uniform};
+use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
+use tfhe::core_crypto::gpu::glwe_linear_algebra::cuda_glwe_dot_product_with_clear_one_to_many;
+use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
+use tfhe::core_crypto::gpu::vec::CudaVec;
+use tfhe::core_crypto::gpu::{cuda_lwe_ciphertext_add_assign, cuda_lwe_ciphertext_add_assign_async, cuda_lwe_ciphertext_add_async, CudaStreams};
 use tfhe::core_crypto::prelude::*;
 
 #[derive(Clone)]
@@ -53,6 +58,24 @@ impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
         vec
     }
 
+    pub fn cuda_accum_dot_with_clear_matrix_block(&self, 
+        glwe_index: usize, 
+        other_columns_block: &[Scalar], 
+        d_accum_lwe: &mut CudaLweCiphertextList<Scalar>, 
+        d_output_lwe: &mut CudaLweCiphertextList<Scalar>, 
+        streams: &CudaStreams)
+    {
+        unsafe {
+            let d_clear_matrix = CudaVec::from_cpu_async(other_columns_block.as_ref(), &streams, 0);
+
+            let glwe = self.data.get(glwe_index).unwrap();
+            let d_input_glwe = CudaGlweCiphertextList::from_glwe_ciphertext(&glwe, &streams);
+            
+            cuda_glwe_dot_product_with_clear_one_to_many(&d_input_glwe, &d_clear_matrix, d_output_lwe, &streams);
+            cuda_lwe_ciphertext_add_assign_async(d_accum_lwe, d_output_lwe, streams);
+        }
+    }
+    
     // TODO have a dot_reversed, as this allocates memory, depending on data size it might be slow
     // and inefficient
     pub fn dot(&self, other: &[Scalar]) -> EncryptedDotProductResult<Scalar> {
