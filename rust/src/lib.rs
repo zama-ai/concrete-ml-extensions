@@ -471,7 +471,7 @@ fn cuda_matrix_multiplication(
 
                 let h_output_lwe = LweCiphertextList::new(
                     Scalar::ZERO, 
-                    LweSize(poly_size_compress.0),
+                    LweSize(poly_size_compress.0 + 1),
                     LweCiphertextCount(poly_size_compress.0),
                     ciphertext_modulus,
                 );
@@ -492,8 +492,7 @@ fn cuda_matrix_multiplication(
 
                     let block = data_array.slice(numpy::ndarray::s![i0..i1,j0..j1]);
                     let slc = block.as_slice().unwrap();
-                    println!("subblock elems {:?}", slc.len());
-                    assert!(slc.len() == poly_size_compress.0 * (j1 - j0));
+                    assert!(slc.len() == poly_size_compress.0 * (j1 - j0), "Clear matrix slice length is wrong");
 
                     decompressed_row.cuda_accum_dot_with_clear_matrix_block(i, slc, &mut d_accum_output_lwe, &mut d_output_lwe, &streams);
                 }
