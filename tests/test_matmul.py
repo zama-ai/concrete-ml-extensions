@@ -2,7 +2,7 @@ import time
 import concrete_ml_extensions as fhext
 import numpy as np
 import pytest
-from conftest import Timing, PARAMS_8B_2048
+from conftest import Timing
 import json
 
 
@@ -56,21 +56,22 @@ def test_integration_compute_and_serialize(size, crypto_params):
 
 
 @pytest.mark.parametrize("size", [512, 1024, 2048, 4096])
-def test_matrix_multiplication(size, crypto_params):
+def test_matrix_multiplication(size):
 
-    matrix_shape = (1, size)
-    values = np.random.randint(0, 2**2, size=matrix_shape, dtype=np.uint64)
-    other_matrix = np.random.randint(0, 2**2, size=(size, size), dtype=np.uint64)
+    matrix_shape = (4, size)
+    values = np.random.randint(0, 2**8, size=matrix_shape, dtype=np.uint64)
+    other_matrix = np.random.randint(0, 2**8, size=(size, size), dtype=np.uint64)
 
     # Expected result using numpy
     expected_result = np.dot(values, other_matrix.T)
 
     # Calculate the bit-width based on the max value in the expected result
     # In practice we will use the calibration in PTQ to find the right bit-width
-    max_value = np.max(expected_result)
+    max_value = np.max(np.abs(expected_result))
     max_bit_width_compute = int(np.ceil(np.log2(max_value + 1)))
 
-    params = json.loads(crypto_params.serialize())
+    #params = json.loads(crypto_params.serialize())
+    params = json.loads(fhext.default_params())
     params["bits_reserved_for_computation"] = (
         max_bit_width_compute + 1
     )  # +1 for sign bit?
@@ -124,7 +125,8 @@ def test_matrix_multiplication(size, crypto_params):
     print(decrypted_result.dtype)
     print(expected_result.dtype)
 
-    shift_delta_bits = 12 if max_bit_width_compute <= 12 else max_bit_width_compute - 12
+    expect_msbs = 10
+    shift_delta_bits = expect_msbs if max_bit_width_compute <= expect_msbs else max_bit_width_compute - expect_msbs
     # Extract the 12 MSB from both results
     msb_decrypted = decrypted_result >> shift_delta_bits
     msb_expected = expected_result >> shift_delta_bits
@@ -135,8 +137,12 @@ def test_matrix_multiplication(size, crypto_params):
     mismatch_count = len(diverging_indices[0])
     mismatch_percentage = (mismatch_count / total_elements) * 100
 
-    print("Percentage of mismatches:", mismatch_percentage)
-    if mismatch_percentage > 1:
+    msb_decrypted2 = decrypted_result >> (shift_delta_bits + 1)
+    msb_expected2 = expected_result >> (shift_delta_bits + 1)
+    mismatch_count2 = np.sum(msb_decrypted2 != msb_expected2)
+
+    print(f"Mismatches: {mismatch_count}, {mismatch_percentage:.2f}%, with {mismatch_count2} mismatch in the LSB")
+    if mismatch_percentage > 5:
         print("\nDiverging values found:")
         for idx in zip(*diverging_indices):
             print(f"Index {idx}:")

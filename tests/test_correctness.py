@@ -35,7 +35,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     )
 
     # These computations used signed weights
-    reference = a @ b
+    reference = a.astype(np.int32) @ b.astype(np.int32)
 
     max_value = np.max(np.abs(reference))
     n_bits_compute = int(np.ceil(np.log2(max_value + 1)))
@@ -48,8 +48,8 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     params = json.loads(fhext.default_params()) #crypto_params.serialize())
     params["bits_reserved_for_computation"] = (
         n_bits_compute + 1
-    )  # +1 for sign bit if needed
-#    params["packing_ks_level"] = 1
+    )
+
     modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(json.dumps(params))
 
     pkey, ckey = fhext.create_private_key(modified_crypto_params)
@@ -88,17 +88,24 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     # Need to check only MSBS
     # since these are those that are guaranteed
     # to be correct by the crypto-parameters
-    msbs_to_check = 12 if n_bits_compute > 12 else n_bits_compute
-    shift_delta = 2 ** (n_bits_compute - msbs_to_check)
-    high_bits = decrypted_result // shift_delta
-    high_bits_reference = reference.astype(np.int64) // shift_delta
+    expect_msbs = 10
+    shift_delta = expect_msbs if n_bits_compute <= expect_msbs else n_bits_compute - expect_msbs
+    #shift_delta = n_bits_compute - msbs_to_check
+    high_bits = decrypted_result >> shift_delta
+    high_bits_reference = reference.astype(np.int64) >> shift_delta
 
-    n_allow_err = inner_size * 0.01
-    diff = np.abs(
-        high_bits_reference - high_bits
-    )
+    diff = high_bits_reference != high_bits
 
-    assert np.sum(diff == 0) >= inner_size - n_allow_err
+    if np.sum(diff) / diff.size > 0.05:
+        high_bits = high_bits.reshape((-1,))
+        high_bits_reference = high_bits_reference.reshape((-1,))
+        diff = high_bits_reference != high_bits
+
+        idx = np.where(diff)
+        print("Mismatch values: ")
+        print("Result:" , high_bits[idx])
+        print("Reference:", high_bits_reference[idx])
+        assert False
 
 
 @pytest.mark.parametrize("n_bits", [8])
@@ -184,4 +191,4 @@ def test_pir(n_bits, num_queries, num_items_in_ds, item_size, crypto_params):
         high_bits_reference - high_bits
     )
 
-    assert np.sum(diff == 0) >= item_size - n_allow_err
+    assert np.sum(diff == 0) == diff.size

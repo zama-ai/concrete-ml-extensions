@@ -1,7 +1,6 @@
 import pytest
 import concrete_ml_extensions as fhext
 import json
-from conftest import PARAMS_8B_2048
 import numpy as np
 
 def test_crypto_params_load():
@@ -22,12 +21,13 @@ def test_crypto_params_load():
 
         fhext.MatmulCryptoParameters.deserialize(json_str)
 
-    json_str = json.dumps(PARAMS_8B_2048)
+    json_str = fhext.default_params()
     fhext.MatmulCryptoParameters.deserialize(json_str)
 
 
-def test_crypto_params_save(crypto_params):
-    params_json = PARAMS_8B_2048
+def test_crypto_params_save():
+    crypto_params = fhext.MatmulCryptoParameters.deserialize(fhext.default_params())
+    params_json = json.loads(fhext.default_params())
     str_out = crypto_params.serialize()
     params_json_rs = json.loads(str_out)
 

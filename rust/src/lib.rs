@@ -567,6 +567,7 @@ fn decrypt_matrix(
     })
 }
 
+// NEW PARAMS: LEVELS==1 for speed
 static PARAMS_8B_2048_NEW: &str = r#"{
     "bits_reserved_for_computation": 27,
     "glwe_encryption_noise_distribution_stdev": 8.67361737996499e-19,
@@ -581,6 +582,7 @@ static PARAMS_8B_2048_NEW: &str = r#"{
     "output_storage_ciphertext_modulus": 19,
     "pks_noise_distrubution_stdev": 8.095547030480235e-30
 }"#;
+
 
 #[pyfunction]
 fn default_params() -> String {
