@@ -216,7 +216,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
         );
 
         let gpu_index = 0;
-        let stream = CudaStreams::new_single_gpu(GpuIndex(gpu_index));
+        let stream = CudaStreams::new_single_gpu(GpuIndex::new(gpu_index));
         //        let cuda_pksk =
         // CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&lwe_pksk, &stream);
 
@@ -302,6 +302,68 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
             })
             .collect();
         result
+    }
+
+    #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+    pub fn cuda_compress_ciphertexts_into_single_glwe(
+        &self,
+        d_input_lwe: &CudaLweCiphertextList<Scalar>, 
+        buffers: &CudaCompressionBuffers<Scalar>,
+    ) -> CompressedModulusSwitchedGlweCiphertext<Scalar>
+    {
+        let lwe_pksk = &self.packing_key_switching_key;
+
+        let polynomial_size = lwe_pksk.output_polynomial_size();
+        let ciphertext_modulus: CiphertextModulus<Scalar> = lwe_pksk.ciphertext_modulus();
+
+        let lwe_per_glwe = self.lwe_per_glwe;
+
+        assert!(
+            lwe_per_glwe.0 <= polynomial_size.0,
+            "Cannot pack more than polynomial_size(={}) elements per glwe, {} requested",
+            polynomial_size.0,
+            lwe_per_glwe.0,
+        );
+
+        let gpu_index = 0;
+        let stream = CudaStreams::new_single_gpu(GpuIndex::new(gpu_index));
+        //        let cuda_pksk =
+        // CudaLwePackingKeyswitchKey::from_lwe_packing_keyswitch_key(&lwe_pksk, &stream);
+
+        //let bodies_count = ciphertexts.
+
+        /*  */
+        //                let now = Instant::now();
+
+        let mut d_output_glwe = CudaGlweCiphertextList::new(
+            lwe_pksk.output_key_glwe_dimension(),
+            polynomial_size,
+            GlweCiphertextCount(1),
+            ciphertext_modulus,
+            &stream,
+        );
+
+        unsafe {
+            cuda_keyswitch_lwe_ciphertext_list_into_glwe_ciphertext_async(
+                &buffers.cuda_pksk,
+                &d_input_lwe,
+                &mut d_output_glwe,
+                &stream,
+            );
+        }
+
+        let output_glwe_list = d_output_glwe.to_glwe_ciphertext_list(&stream);
+
+        let binding = output_glwe_list.get(0);
+        let out_gpu = binding.as_view();
+               
+        let compressed = CompressedModulusSwitchedGlweCiphertext::compress(
+            &out_gpu,
+            self.storage_log_modulus,
+            LweCiphertextCount(polynomial_size.0),
+        );
+        //                println!("COMPRESS TIME {}ms", now.elapsed().as_millis());
+        compressed
     }
 
     pub fn cpu_compress_ciphertexts_into_list<C: Container<Element = Scalar>>(

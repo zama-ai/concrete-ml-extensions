@@ -42,5 +42,5 @@ tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "gpu", "
 #tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", branch = "as/add_circulant_poly_product", features = ["integer"] }
 
 [features]
-default = ["cuda"]
+default = []
 cuda = []

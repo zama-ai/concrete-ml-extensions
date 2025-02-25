@@ -22,8 +22,8 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
 
     high_a = 2**n_bits
 
-    inner_size_a = 8 if dims == 2 else None
-    inner_size_b = inner_size if dims == 2 else None
+    inner_size_a = 8
+    inner_size_b = inner_size
 
     # Signed values must be processed for the weights, so
     # we generate signed int64. This is also used to compute
@@ -63,6 +63,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
     )
     start_time = time.time()
 
+    #b = np.ascontiguousarray(b.T)
     matmul_result = fhext.matrix_multiplication(
         encrypted_matrix=encrypted_matrix, data=b, compression_key=ckey
     )

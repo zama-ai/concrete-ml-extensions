@@ -73,6 +73,7 @@ impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
             
             cuda_glwe_dot_product_with_clear_one_to_many(&d_input_glwe, &d_clear_matrix, d_output_lwe, &streams);
             cuda_lwe_ciphertext_add_assign_async(d_accum_lwe, d_output_lwe, streams);
+            streams.synchronize();
         }
     }
     
