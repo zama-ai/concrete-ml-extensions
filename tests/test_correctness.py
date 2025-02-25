@@ -10,7 +10,11 @@ CRYPTO_DTYPE = np.uint64
 @pytest.mark.parametrize("n_bits", [2, 6, 8])
 @pytest.mark.parametrize("dims", [2])
 @pytest.mark.parametrize("inner_size", [256, 1024, 2048, 4096])
+<<<<<<< HEAD
 @pytest.mark.parametrize("signed_b", [False, True])
+=======
+@pytest.mark.parametrize("signed_b", [False, True]) #FIXME: not working for signed yet.
+>>>>>>> b496f20 (fix: working gpu glwe dot)
 def test_correctness(n_bits, inner_size, dims, signed_b):
 
     assert dims == 2
@@ -44,12 +48,21 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
     # Change the encoding to push the inputs and the result
     # as much as possible to the left in the MSBs
     # in order to avoid noise corruption
+<<<<<<< HEAD
     params = json.loads(fhext.default_params())  # crypto_params.serialize())
     params["bits_reserved_for_computation"] = n_bits_compute + 1
 
     modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(
         json.dumps(params)
     )
+=======
+    params = json.loads(fhext.default_params())
+    params["bits_reserved_for_computation"] = (
+        n_bits_compute + 1
+    )
+
+    modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(json.dumps(params))
+>>>>>>> b496f20 (fix: working gpu glwe dot)
 
     pkey, ckey = fhext.create_private_key(modified_crypto_params)
 
@@ -112,7 +125,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
 
 @pytest.mark.parametrize("n_bits", [8])
 @pytest.mark.parametrize("num_items_in_ds", [10000])
-@pytest.mark.parametrize("item_size", [100000])
+@pytest.mark.parametrize("item_size", [2048, 100000])
 @pytest.mark.parametrize("num_queries", [10])
 def test_pir(n_bits, num_queries, num_items_in_ds, item_size):
     low_b = 0  # randint low value is included

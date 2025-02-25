@@ -307,10 +307,9 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
     #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
     pub fn cuda_compress_ciphertexts_into_single_glwe(
         &self,
-        d_input_lwe: &CudaLweCiphertextList<Scalar>, 
+        d_input_lwe: &CudaLweCiphertextList<Scalar>,
         buffers: &CudaCompressionBuffers<Scalar>,
-    ) -> CompressedModulusSwitchedGlweCiphertext<Scalar>
-    {
+    ) -> CompressedModulusSwitchedGlweCiphertext<Scalar> {
         let lwe_pksk = &self.packing_key_switching_key;
 
         let polynomial_size = lwe_pksk.output_polynomial_size();
@@ -356,7 +355,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
 
         let binding = output_glwe_list.get(0);
         let out_gpu = binding.as_view();
-               
+
         let compressed = CompressedModulusSwitchedGlweCiphertext::compress(
             &out_gpu,
             self.storage_log_modulus,

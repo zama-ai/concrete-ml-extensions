@@ -408,9 +408,10 @@ fn cuda_matrix_multiplication(
     data: PyReadonlyArray<Scalar, Ix2>,
     compression_key: &CudaCompressionKey,
 ) -> PyResult<CompressedResultEncryptedMatrix> {
-    use tfhe::core_crypto::gpu::{cuda_lwe_ciphertext_add_async, glwe_ciphertext_list::CudaGlweCiphertextList, lwe_ciphertext_list::CudaLweCiphertextList};
+    use tfhe::core_crypto::gpu::cuda_lwe_ciphertext_add_async;
+    use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
+    use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 
-    
     let data_array = data.as_array();
 
     let data_columns: Vec<_> = data_array
@@ -435,12 +436,10 @@ fn cuda_matrix_multiplication(
         .packing_key_switching_key
         .ciphertext_modulus();
 
-//    let row_results2_gpu = CudaLweCiphertextList::from_lwe_ciphertext_list(&row_results2, &stream);    
+    //    let row_results2_gpu = CudaLweCiphertextList::from_lwe_ciphertext_list(&row_results2,
+    // &stream);
 
-/*    // GPU polynomial product
-    let gpu_index = 0;
-    let streams = CudaStreams::new_single_gpu(GpuIndex::new(gpu_index));
-
+    // GPU polynomial product
     let result_matrix = encrypted_matrix
         .inner
         .iter()
@@ -456,7 +455,7 @@ fn cuda_matrix_multiplication(
             let compressed_row = (0..n_blocks_cols).map(|j| {
                 let j0 = j * poly_size_compress.0;
                 let j1 = if j == n_blocks_rows - 1 {
-                    data_array.ncols() 
+                    data_array.ncols()
                 } else {
                     (j + 1) * poly_size_compress.0
                 };
@@ -470,29 +469,39 @@ fn cuda_matrix_multiplication(
 
                 let mut d_accum_output_lwe: CudaLweCiphertextList<u64> = CudaLweCiphertextList::from_lwe_ciphertext_list(
                     &h_output_lwe,
-                    &streams,
+                    &stream,
                 );
 
                 let mut d_output_lwe: CudaLweCiphertextList<u64> = CudaLweCiphertextList::from_lwe_ciphertext_list(
                     &h_output_lwe,
-                    &streams,
-                );
+                    &stream,
+                );                
 
                 for i in 0..n_blocks_rows {
                     let i0 = i * poly_size_compress.0;
                     let i1 = (i + 1) * poly_size_compress.0;
 
                     let block = data_array.slice(numpy::ndarray::s![i0..i1,j0..j1]);
-                    let slc: &[u64] = block.as_slice().unwrap();
-                    assert!(slc.len() == poly_size_compress.0 * (j1 - j0), "Clear matrix slice length is wrong");
 
-                    decompressed_row.cuda_accum_dot_with_clear_matrix_block(i, slc, &mut d_accum_output_lwe, &mut d_output_lwe, &streams);
+                    let mut data_block = Vec::<Scalar>::with_capacity(block.ncols() * block.nrows());
+
+                    block
+                        .axis_iter(Axis(1))
+                        .for_each(|col| {
+                            let mut reversed: Vec<Scalar> = col.to_vec();
+                            reversed.reverse();
+                            data_block.append(&mut reversed);
+                        });
+
+                        assert!(data_block.len() == poly_size_compress.0 * (j1 - j0), "Clear matrix slice length is wrong");
+
+                    decompressed_row.cuda_accum_dot_with_clear_matrix_block(i, data_block.as_ref(), &mut d_accum_output_lwe, &mut d_output_lwe, &stream);
                 }
 
-                let compresed_chunk = compression_key
+                let compresed_chunk: compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext<u64> = compression_key
                     .inner
                     .cuda_compress_ciphertexts_into_single_glwe(&d_accum_output_lwe, &compression_key.buffers);
-
+                
                 compresed_chunk
             }).collect();
 
@@ -501,50 +510,50 @@ fn cuda_matrix_multiplication(
             })            
         })
         .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
-*/
-        
-    let mut row_results2 = LweCiphertextList::new(
-        0,
-        lwe_size,
-        lwe_count,
-        compression_key
-            .inner
-            .packing_key_switching_key
-            .ciphertext_modulus(),
-    );
 
-    let result_matrix = encrypted_matrix
-        .inner
-        .iter()
-        .map(|encrypted_row| {
-            //            let now = Instant::now();
-            let decompressed_row = encrypted_row.decompress();
-            //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
-            data_columns
-                .par_iter()
-                .zip(row_results2.par_iter_mut())
-                .for_each(|(data_col, mut result_out)| {
-                    let data_col_slice = data_col.as_slice().unwrap();
-                    result_out.as_mut().copy_from_slice(
-                        decompressed_row
-                            .dot(data_col_slice)
-                            .as_lwe()
-                            .into_container(),
-                    );
-                });
+    /*
+       let mut row_results2 = LweCiphertextList::new(
+           0,
+           lwe_size,
+           lwe_count,
+           compression_key
+               .inner
+               .packing_key_switching_key
+               .ciphertext_modulus(),
+       );
 
-            //            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
+       let result_matrix = encrypted_matrix
+           .inner
+           .iter()
+           .map(|encrypted_row| {
+               //            let now = Instant::now();
+               let decompressed_row = encrypted_row.decompress();
+               //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
+               data_columns
+                   .par_iter()
+                   .zip(row_results2.par_iter_mut())
+                   .for_each(|(data_col, mut result_out)| {
+                       let data_col_slice = data_col.as_slice().unwrap();
+                       result_out.as_mut().copy_from_slice(
+                           decompressed_row
+                               .dot(data_col_slice)
+                               .as_lwe()
+                               .into_container(),
+                       );
+                   });
 
-            let compressed_row = compression_key
-                .inner
-                .cuda_compress_ciphertexts_into_list(&row_results2, &compression_key.buffers);
+               //            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
 
-            Ok(CompressedResultCipherText {
-                inner: compressed_row,
-            })
-        })
-        .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
- 
+               let compressed_row = compression_key
+                   .inner
+                   .cuda_compress_ciphertexts_into_list(&row_results2, &compression_key.buffers);
+
+               Ok(CompressedResultCipherText {
+                   inner: compressed_row,
+               })
+           })
+           .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
+    */
     Ok(CompressedResultEncryptedMatrix {
         inner: result_matrix?,
     })
