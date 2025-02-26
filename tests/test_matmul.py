@@ -7,12 +7,14 @@ import json
 
 
 @pytest.mark.parametrize("size", [128, 512, 2048, 4096, 8192])
-def test_integration_compute_and_serialize(size, crypto_params):
+def test_integration_compute_and_serialize(size):
     # Setup
     vec_length = size
     num_valid_glwe_values_in_last_ciphertext = size % 2048
     values = np.ones((1, vec_length), dtype=np.uint64)
     other_values = np.ones((vec_length, vec_length), dtype=np.uint64)
+
+    crypto_params = fhext.MatmulCryptoParameters.deserialize(fhext.default_params())
 
     # Running everything with timings
     with Timing("keygen"):
@@ -70,12 +72,14 @@ def test_matrix_multiplication(size):
     max_value = np.max(np.abs(expected_result))
     max_bit_width_compute = int(np.ceil(np.log2(max_value + 1)))
 
-    #params = json.loads(crypto_params.serialize())
+    # params = json.loads(crypto_params.serialize())
     params = json.loads(fhext.default_params())
     params["bits_reserved_for_computation"] = (
         max_bit_width_compute + 1
     )  # +1 for sign bit?
-    modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(json.dumps(params))
+    modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(
+        json.dumps(params)
+    )
 
     # The number of valid GLWE values in the last ciphertext is the size of the matrix
     # or 2048 if the size is a multiple of 2048
@@ -126,7 +130,11 @@ def test_matrix_multiplication(size):
     print(expected_result.dtype)
 
     expect_msbs = 10
-    shift_delta_bits = expect_msbs if max_bit_width_compute <= expect_msbs else max_bit_width_compute - expect_msbs
+    shift_delta_bits = (
+        expect_msbs
+        if max_bit_width_compute <= expect_msbs
+        else max_bit_width_compute - expect_msbs
+    )
     # Extract the 12 MSB from both results
     msb_decrypted = decrypted_result >> shift_delta_bits
     msb_expected = expected_result >> shift_delta_bits
@@ -141,7 +149,9 @@ def test_matrix_multiplication(size):
     msb_expected2 = expected_result >> (shift_delta_bits + 1)
     mismatch_count2 = np.sum(msb_decrypted2 != msb_expected2)
 
-    print(f"Mismatches: {mismatch_count}, {mismatch_percentage:.2f}%, with {mismatch_count2} mismatch in the LSB")
+    print(
+        f"Mismatches: {mismatch_count}, {mismatch_percentage:.2f}%, with {mismatch_count2} mismatch in the LSB"
+    )
     if mismatch_percentage > 5:
         print("\nDiverging values found:")
         for idx in zip(*diverging_indices):

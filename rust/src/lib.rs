@@ -583,7 +583,6 @@ static PARAMS_8B_2048_NEW: &str = r#"{
     "pks_noise_distrubution_stdev": 8.095547030480235e-30
 }"#;
 
-
 #[pyfunction]
 fn default_params() -> String {
     PARAMS_8B_2048_NEW.to_string()

@@ -4,6 +4,7 @@ import numpy as np
 import time
 import json
 
+
 class Timing:
     def __init__(self, message=""):
         self.message = message

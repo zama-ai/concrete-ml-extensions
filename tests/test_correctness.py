@@ -6,11 +6,12 @@ import time
 
 CRYPTO_DTYPE = np.uint64
 
+
 @pytest.mark.parametrize("n_bits", [2, 6, 8])
 @pytest.mark.parametrize("dims", [2])
 @pytest.mark.parametrize("inner_size", [256, 1024, 2048, 4096])
-@pytest.mark.parametrize("signed_b", [False, True]) #FIXME: not working for signed yet.
-def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
+@pytest.mark.parametrize("signed_b", [False, True])
+def test_correctness(n_bits, inner_size, dims, signed_b):
 
     assert dims == 2
 
@@ -26,10 +27,8 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
 
     # Signed values must be processed for the weights, so
     # we generate signed int64. This is also used to compute
-    # the max bits 
-    a = np.random.randint(
-        0, high_a, size=(inner_size_a, inner_size), dtype=np.uint64
-    )
+    # the max bits
+    a = np.random.randint(0, high_a, size=(inner_size_a, inner_size), dtype=np.uint64)
     b = np.random.randint(
         low_b, high_b, size=(inner_size, inner_size_b), dtype=np.int64
     )
@@ -45,12 +44,12 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     # Change the encoding to push the inputs and the result
     # as much as possible to the left in the MSBs
     # in order to avoid noise corruption
-    params = json.loads(fhext.default_params()) #crypto_params.serialize())
-    params["bits_reserved_for_computation"] = (
-        n_bits_compute + 1
-    )
+    params = json.loads(fhext.default_params())  # crypto_params.serialize())
+    params["bits_reserved_for_computation"] = n_bits_compute + 1
 
-    modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(json.dumps(params))
+    modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(
+        json.dumps(params)
+    )
 
     pkey, ckey = fhext.create_private_key(modified_crypto_params)
 
@@ -69,8 +68,8 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     )
 
     tot_server_time = time.time() - start_time
-    device = "cuda" if fhext.is_cuda_enabled() and fhext.is_cuda_available() else "cpu" 
-    print(f"Server time without serialization {tot_server_time}s on {device}. ", end='')
+    device = "cuda" if fhext.is_cuda_enabled() and fhext.is_cuda_available() else "cpu"
+    print(f"Server time without serialization {tot_server_time}s on {device}. ", end="")
 
     polynomial_size = params["polynomial_size"]
     num_valid_glwe_values_in_last_ciphertext = (
@@ -89,8 +88,10 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
     # since these are those that are guaranteed
     # to be correct by the crypto-parameters
     expect_msbs = 10
-    shift_delta = expect_msbs if n_bits_compute <= expect_msbs else n_bits_compute - expect_msbs
-    #shift_delta = n_bits_compute - msbs_to_check
+    shift_delta = (
+        expect_msbs if n_bits_compute <= expect_msbs else n_bits_compute - expect_msbs
+    )
+    # shift_delta = n_bits_compute - msbs_to_check
     high_bits = decrypted_result >> shift_delta
     high_bits_reference = reference.astype(np.int64) >> shift_delta
 
@@ -103,7 +104,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
 
         idx = np.where(diff)
         print("Mismatch values: ")
-        print("Result:" , high_bits[idx])
+        print("Result:", high_bits[idx])
         print("Reference:", high_bits_reference[idx])
         assert False
 
@@ -115,10 +116,10 @@ def test_correctness(n_bits, inner_size, dims, signed_b, crypto_params):
 def test_pir(n_bits, num_queries, num_items_in_ds, item_size, crypto_params):
     low_b = 0  # randint low value is included
     high_b = 2**n_bits
-    
+
     # Signed values must be processed for the weights, so
     # we generate signed int64. This is also used to compute
-    # the max bits 
+    # the max bits
     a = np.zeros((num_queries, num_items_in_ds), dtype=np.uint64)
     for idx in range(num_queries):
         a[idx, np.random.randint(num_items_in_ds)] = 1
@@ -138,12 +139,14 @@ def test_pir(n_bits, num_queries, num_items_in_ds, item_size, crypto_params):
     # Change the encoding to push the inputs and the result
     # as much as possible to the left in the MSBs
     # in order to avoid noise corruption
-    params = json.loads(fhext.default_params()) #crypto_params.serialize())
+    params = json.loads(fhext.default_params())  # crypto_params.serialize())
     params["bits_reserved_for_computation"] = (
         n_bits_compute + 1
     )  # +1 for sign bit if needed
-#    params["packing_ks_level"] = 1
-    modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(json.dumps(params))
+    #    params["packing_ks_level"] = 1
+    modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(
+        json.dumps(params)
+    )
 
     pkey, ckey = fhext.create_private_key(modified_crypto_params)
 
@@ -162,8 +165,8 @@ def test_pir(n_bits, num_queries, num_items_in_ds, item_size, crypto_params):
     )
 
     tot_server_time = time.time() - start_time
-    device = "cuda" if fhext.is_cuda_enabled() and fhext.is_cuda_available() else "cpu" 
-    print(f"Server time without serialization {tot_server_time}s on {device}. ", end='')
+    device = "cuda" if fhext.is_cuda_enabled() and fhext.is_cuda_available() else "cpu"
+    print(f"Server time without serialization {tot_server_time}s on {device}. ", end="")
 
     polynomial_size = params["polynomial_size"]
     num_valid_glwe_values_in_last_ciphertext = (
@@ -187,8 +190,6 @@ def test_pir(n_bits, num_queries, num_items_in_ds, item_size, crypto_params):
     high_bits_reference = reference.astype(np.int64) // shift_delta
 
     n_allow_err = 0
-    diff = np.abs(
-        high_bits_reference - high_bits
-    )
+    diff = np.abs(high_bits_reference - high_bits)
 
     assert np.sum(diff == 0) == diff.size
