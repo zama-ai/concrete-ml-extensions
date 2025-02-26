@@ -113,7 +113,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
 @pytest.mark.parametrize("num_items_in_ds", [10000])
 @pytest.mark.parametrize("item_size", [100000])
 @pytest.mark.parametrize("num_queries", [10])
-def test_pir(n_bits, num_queries, num_items_in_ds, item_size, crypto_params):
+def test_pir(n_bits, num_queries, num_items_in_ds, item_size):
     low_b = 0  # randint low value is included
     high_b = 2**n_bits
 
@@ -139,7 +139,7 @@ def test_pir(n_bits, num_queries, num_items_in_ds, item_size, crypto_params):
     # Change the encoding to push the inputs and the result
     # as much as possible to the left in the MSBs
     # in order to avoid noise corruption
-    params = json.loads(fhext.default_params())  # crypto_params.serialize())
+    params = json.loads(fhext.default_params())
     params["bits_reserved_for_computation"] = (
         n_bits_compute + 1
     )  # +1 for sign bit if needed
