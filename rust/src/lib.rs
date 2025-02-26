@@ -461,7 +461,7 @@ fn cuda_matrix_multiplication(
                 };
 
                 let h_output_lwe = LweCiphertextList::new(
-                    Scalar::ZERO, 
+                    Scalar::ZERO,
                     LweSize(poly_size_compress.0 + 1),
                     LweCiphertextCount(poly_size_compress.0),
                     ciphertext_modulus,
@@ -475,7 +475,7 @@ fn cuda_matrix_multiplication(
                 let mut d_output_lwe: CudaLweCiphertextList<u64> = CudaLweCiphertextList::from_lwe_ciphertext_list(
                     &h_output_lwe,
                     &stream,
-                );                
+                );
 
                 for i in 0..n_blocks_rows {
                     let i0 = i * poly_size_compress.0;
@@ -501,13 +501,13 @@ fn cuda_matrix_multiplication(
                 let compresed_chunk: compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext<u64> = compression_key
                     .inner
                     .cuda_compress_ciphertexts_into_single_glwe(&d_accum_output_lwe, &compression_key.buffers);
-                
+
                 compresed_chunk
             }).collect();
 
             Ok(CompressedResultCipherText {
                 inner: compressed_row,
-            })            
+            })
         })
         .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
 
