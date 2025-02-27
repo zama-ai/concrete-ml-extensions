@@ -13,7 +13,7 @@ use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
 use tfhe::prelude::*;
 
-use tfhe::core_crypto::gpu::algorithms::glwe_linear_algebra::cuda_glwe_dot_product_with_clear_one_to_many;
+use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 
 mod compression;
 mod computations;
@@ -408,10 +408,6 @@ fn cuda_matrix_multiplication(
     data: PyReadonlyArray<Scalar, Ix2>,
     compression_key: &CudaCompressionKey,
 ) -> PyResult<CompressedResultEncryptedMatrix> {
-    use tfhe::core_crypto::gpu::cuda_lwe_ciphertext_add_async;
-    use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
-    use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
-
     let data_array = data.as_array();
 
     let data_columns: Vec<_> = data_array
@@ -419,14 +415,14 @@ fn cuda_matrix_multiplication(
         .map(|col| col.to_owned())
         .collect();
 
+    let poly_size_in = encrypted_matrix.inner[0].data[0].polynomial_size().0;
+
     let poly_size_compress = compression_key
         .inner
         .packing_key_switching_key
         .output_polynomial_size();
     let lwe_size = LweSize(poly_size_compress.0 + 1);
     let lwe_count = LweCiphertextCount(data_columns.len());
-
-    assert!(data_array.nrows() % poly_size_compress.0 == 0);
 
     let gpu_index = 0;
     let stream = CudaStreams::new_single_gpu(GpuIndex::new(gpu_index));
@@ -436,9 +432,6 @@ fn cuda_matrix_multiplication(
         .packing_key_switching_key
         .ciphertext_modulus();
 
-    //    let row_results2_gpu = CudaLweCiphertextList::from_lwe_ciphertext_list(&row_results2,
-    // &stream);
-
     // GPU polynomial product
     let result_matrix = encrypted_matrix
         .inner
@@ -446,24 +439,21 @@ fn cuda_matrix_multiplication(
         .map(|encrypted_row| {
             let decompressed_row = encrypted_row.decompress();
 
-            assert!(data_array.nrows() % poly_size_compress.0 == 0);
-            assert!(data_array.ncols() % poly_size_compress.0 == 0);
-
-            let n_blocks_rows = data_array.nrows() / poly_size_compress.0;
-            let n_blocks_cols = (data_array.ncols() + poly_size_compress.0 - 1) / poly_size_compress.0;
+            let n_blocks_rows = (data_array.nrows() + poly_size_in - 1) / poly_size_in;
+            let n_blocks_cols = (data_array.ncols() + poly_size_in - 1) / poly_size_in;
 
             let compressed_row = (0..n_blocks_cols).map(|j| {
-                let j0 = j * poly_size_compress.0;
-                let j1 = if j == n_blocks_rows - 1 {
+                let j0 = j * poly_size_in;
+                let j1 = if j == n_blocks_cols - 1 {
                     data_array.ncols()
                 } else {
-                    (j + 1) * poly_size_compress.0
+                    (j + 1) * poly_size_in
                 };
 
                 let h_output_lwe = LweCiphertextList::new(
                     Scalar::ZERO,
-                    LweSize(poly_size_compress.0 + 1),
-                    LweCiphertextCount(poly_size_compress.0),
+                    LweSize(poly_size_in + 1),
+                    LweCiphertextCount(j1 - j0),
                     ciphertext_modulus,
                 );
 
@@ -478,22 +468,27 @@ fn cuda_matrix_multiplication(
                 );
 
                 for i in 0..n_blocks_rows {
-                    let i0 = i * poly_size_compress.0;
-                    let i1 = (i + 1) * poly_size_compress.0;
+                    let i0 = i * poly_size_in;
+                    let i1 = if i == n_blocks_rows - 1 {
+                        data_array.nrows()
+                    } else {
+                        (i + 1) * poly_size_in
+                    };
 
                     let block = data_array.slice(numpy::ndarray::s![i0..i1,j0..j1]);
 
-                    let mut data_block = Vec::<Scalar>::with_capacity(block.ncols() * block.nrows());
+                    let mut data_block = Vec::<Scalar>::with_capacity(block.ncols() * poly_size_in);
 
                     block
                         .axis_iter(Axis(1))
                         .for_each(|col| {
                             let mut reversed: Vec<Scalar> = col.to_vec();
+                            reversed.extend(std::iter::repeat(Scalar::ZERO).take(poly_size_in - reversed.len()));
                             reversed.reverse();
                             data_block.append(&mut reversed);
                         });
 
-                        assert!(data_block.len() == poly_size_compress.0 * (j1 - j0), "Clear matrix slice length is wrong");
+                    assert!(data_block.len() == poly_size_in * (j1 - j0), "Clear matrix slice length is wrong");
 
                     decompressed_row.cuda_accum_dot_with_clear_matrix_block(i, data_block.as_ref(), &mut d_accum_output_lwe, &mut d_output_lwe, &stream);
                 }
