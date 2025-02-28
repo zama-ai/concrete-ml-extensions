@@ -15,9 +15,15 @@ def create_private_key(crypto_params):
     return cpu_create_private_key(crypto_params)
 
 
-def matrix_multiplication(encrypted_matrix, data, compression_key):
+def matrix_multiplication(
+    encrypted_matrix, clear_matrix, clear_matrix_id: str, compression_key
+):
     if is_cuda_enabled() and is_cuda_available():
-        return cuda_matrix_multiplication(encrypted_matrix, data, compression_key)
+        clear_matrix_gpu = make_cuda_clear_matrix(clear_matrix, compression_key)
+
+        return cuda_matrix_multiplication(
+            encrypted_matrix, clear_matrix_gpu, compression_key
+        )
     return cpu_matrix_multiplication(encrypted_matrix, data, compression_key)
 
 

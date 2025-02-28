@@ -405,24 +405,23 @@ fn encrypt_matrix(
 #[pyfunction]
 fn cuda_matrix_multiplication(
     encrypted_matrix: &EncryptedMatrix,
-    data: PyReadonlyArray<Scalar, Ix2>,
+    data: &CudaClearMatrix,
     compression_key: &CudaCompressionKey,
 ) -> PyResult<CompressedResultEncryptedMatrix> {
-    let data_array = data.as_array();
-
-    let data_columns: Vec<_> = data_array
-        .axis_iter(Axis(1))
-        .map(|col| col.to_owned())
-        .collect();
-
     let poly_size_in = encrypted_matrix.inner[0].data[0].polynomial_size().0;
+    assert_eq!(
+        poly_size_in, compression_key.inner.lwe_per_glwe.0,
+        "GPU GLWE dot product only supports crypto-params
+         where the output lwe/glwe count is equal to the input poly size"
+    );
 
     let poly_size_compress = compression_key
         .inner
         .packing_key_switching_key
         .output_polynomial_size();
-    let lwe_size = LweSize(poly_size_compress.0 + 1);
-    let lwe_count = LweCiphertextCount(data_columns.len());
+
+    //let lwe_size = LweSize(poly_size_compress.0 + 1);
+    //let lwe_count = LweCiphertextCount(data_columns.len());
 
     let gpu_index = 0;
     let stream = CudaStreams::new_single_gpu(GpuIndex::new(gpu_index));
@@ -432,6 +431,34 @@ fn cuda_matrix_multiplication(
         .packing_key_switching_key
         .ciphertext_modulus();
 
+    let mut d_accum_buffers = Vec::<CudaLweCiphertextList<Scalar>>::with_capacity(data.col_blocks);
+    let mut d_instant_buffers =
+        Vec::<CudaLweCiphertextList<Scalar>>::with_capacity(data.col_blocks);
+
+    (0..data.col_blocks).for_each(|j| {
+        let lwe_count = if j == data.col_blocks - 1 && data.col_total % poly_size_in > 0 {
+            data.col_total % poly_size_in
+        } else {
+            poly_size_in
+        };
+
+        let h_output_lwe = LweCiphertextList::new(
+            Scalar::ZERO,
+            LweSize(poly_size_in + 1),
+            LweCiphertextCount(lwe_count),
+            ciphertext_modulus,
+        );
+
+        let mut d_accum_output_lwe: CudaLweCiphertextList<u64> =
+            CudaLweCiphertextList::from_lwe_ciphertext_list(&h_output_lwe, &stream);
+
+        let mut d_output_lwe: CudaLweCiphertextList<u64> =
+            CudaLweCiphertextList::from_lwe_ciphertext_list(&h_output_lwe, &stream);
+
+        d_accum_buffers.push(d_accum_output_lwe);
+
+        d_instant_buffers.push(d_output_lwe);
+    });
     // GPU polynomial product
     let result_matrix = encrypted_matrix
         .inner
@@ -439,58 +466,26 @@ fn cuda_matrix_multiplication(
         .map(|encrypted_row| {
             let decompressed_row = encrypted_row.decompress();
 
-            let n_blocks_rows = (data_array.nrows() + poly_size_in - 1) / poly_size_in;
-            let n_blocks_cols = (data_array.ncols() + poly_size_in - 1) / poly_size_in;
-
-            let compressed_row = (0..n_blocks_cols).map(|j| {
-                let j0 = j * poly_size_in;
-                let j1 = if j == n_blocks_cols - 1 {
-                    data_array.ncols()
+            let compressed_row = (0..data.col_blocks).map(|j| {
+                let lwe_count = if j == data.col_blocks - 1 && data.col_total % poly_size_in > 0 {
+                    data.col_total % poly_size_in
                 } else {
-                    (j + 1) * poly_size_in
+                    poly_size_in
                 };
 
-                let h_output_lwe = LweCiphertextList::new(
-                    Scalar::ZERO,
-                    LweSize(poly_size_in + 1),
-                    LweCiphertextCount(j1 - j0),
-                    ciphertext_modulus,
-                );
+                let mut d_accum_output_lwe = d_accum_buffers.get_mut(j).unwrap();
+                let mut d_output_lwe = d_instant_buffers.get_mut(j).unwrap();
 
-                let mut d_accum_output_lwe: CudaLweCiphertextList<u64> = CudaLweCiphertextList::from_lwe_ciphertext_list(
-                    &h_output_lwe,
-                    &stream,
-                );
 
-                let mut d_output_lwe: CudaLweCiphertextList<u64> = CudaLweCiphertextList::from_lwe_ciphertext_list(
-                    &h_output_lwe,
-                    &stream,
-                );
+                unsafe {
+                    d_accum_output_lwe.set_to_zero_async(&stream);
+                }
 
-                for i in 0..n_blocks_rows {
-                    let i0 = i * poly_size_in;
-                    let i1 = if i == n_blocks_rows - 1 {
-                        data_array.nrows()
-                    } else {
-                        (i + 1) * poly_size_in
-                    };
+                for i in 0..data.row_blocks {
+                    let h_data_block = &data.data[j][i];
+                    assert_eq!(h_data_block.len(), lwe_count * poly_size_in, "Cached GPU matrix block has wrong size");
 
-                    let block = data_array.slice(numpy::ndarray::s![i0..i1,j0..j1]);
-
-                    let mut data_block = Vec::<Scalar>::with_capacity(block.ncols() * poly_size_in);
-
-                    block
-                        .axis_iter(Axis(1))
-                        .for_each(|col| {
-                            let mut reversed: Vec<Scalar> = col.to_vec();
-                            reversed.extend(std::iter::repeat(Scalar::ZERO).take(poly_size_in - reversed.len()));
-                            reversed.reverse();
-                            data_block.append(&mut reversed);
-                        });
-
-                    assert!(data_block.len() == poly_size_in * (j1 - j0), "Clear matrix slice length is wrong");
-
-                    decompressed_row.cuda_accum_dot_with_clear_matrix_block(i, data_block.as_ref(), &mut d_accum_output_lwe, &mut d_output_lwe, &stream);
+                    decompressed_row.cuda_accum_dot_with_clear_matrix_block(i, &h_data_block, &mut d_accum_output_lwe, &mut d_output_lwe, &stream);
                 }
 
                 let compresed_chunk: compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext<u64> = compression_key
@@ -727,7 +722,10 @@ fn concrete_ml_extensions(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(cuda_create_private_key, m)?)?;
     m.add_function(wrap_pyfunction!(is_cuda_available, m)?)?;
     m.add_function(wrap_pyfunction!(cuda_matrix_multiplication, m)?)?;
+    m.add_function(wrap_pyfunction!(make_cuda_clear_matrix, m)?)?;
+
     m.add_class::<CudaCompressionKey>()?;
+    m.add_class::<CudaClearMatrix>()?;
 
     concrete_ml_extensions_base(m)
 }
@@ -931,4 +929,78 @@ fn keygen_radix(py: Python<'_>) -> PyResult<Bound<PyTuple>> {
 #[pyfunction]
 fn get_crypto_params_radix() -> String {
     serde_json::to_string(&BLOCK_PARAMS).unwrap()
+}
+
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+#[pyclass]
+struct CudaClearMatrix {
+    data: Vec<Vec<CudaVec<Scalar>>>, // stores the GPU buffers for each block
+    row_blocks: usize,               // number of row blocks (of size=poly_size)
+    row_total: usize,                // total number of rows
+    col_blocks: usize,               // number of column blocks (of size=poly_size)
+    col_total: usize,                // total number of columns
+}
+
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
+#[pyfunction]
+fn make_cuda_clear_matrix(
+    data: PyReadonlyArray<Scalar, Ix2>,
+    compression_key: &CudaCompressionKey,
+) -> CudaClearMatrix {
+    let poly_size_in = compression_key.inner.lwe_per_glwe.0;
+    let data_array = data.as_array();
+
+    let n_blocks_rows = (data_array.nrows() + poly_size_in - 1) / poly_size_in;
+    let n_blocks_cols = (data_array.ncols() + poly_size_in - 1) / poly_size_in;
+
+    let gpu_index = 0;
+    let streams = CudaStreams::new_single_gpu(GpuIndex::new(gpu_index));
+
+    let mut gpu_buf_matrix = Vec::<Vec<CudaVec<Scalar>>>::new();
+    for j in 0..n_blocks_cols {
+        let mut gpu_buf_row = Vec::<CudaVec<Scalar>>::new();
+
+        let j0 = j * poly_size_in;
+        let j1 = if j == n_blocks_cols - 1 {
+            data_array.ncols()
+        } else {
+            (j + 1) * poly_size_in
+        };
+
+        for i in 0..n_blocks_rows {
+            let i0 = i * poly_size_in;
+            let i1 = if i == n_blocks_rows - 1 {
+                data_array.nrows()
+            } else {
+                (i + 1) * poly_size_in
+            };
+
+            let block = data_array.slice(numpy::ndarray::s![i0..i1, j0..j1]);
+
+            let mut data_block = Vec::<Scalar>::with_capacity(block.ncols() * poly_size_in);
+
+            block.axis_iter(Axis(1)).for_each(|col| {
+                let mut reversed: Vec<Scalar> = col.to_vec();
+                reversed
+                    .extend(std::iter::repeat(Scalar::ZERO).take(poly_size_in - reversed.len()));
+                reversed.reverse();
+                data_block.append(&mut reversed);
+            });
+
+            unsafe {
+                let d_clear_matrix = CudaVec::from_cpu_async(data_block.as_ref(), &streams, 0);
+
+                gpu_buf_row.push(d_clear_matrix);
+            }
+        }
+        gpu_buf_matrix.push(gpu_buf_row);
+    }
+
+    CudaClearMatrix {
+        data: gpu_buf_matrix,
+        row_blocks: n_blocks_rows,
+        col_blocks: n_blocks_cols,
+        row_total: data_array.nrows(),
+        col_total: data_array.ncols(),
+    }
 }

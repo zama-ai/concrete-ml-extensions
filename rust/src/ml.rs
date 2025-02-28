@@ -64,13 +64,14 @@ impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
     pub fn cuda_accum_dot_with_clear_matrix_block(
         &self,
         glwe_index: usize,
-        other_columns_block: &[Scalar],
+        d_clear_matrix: &CudaVec<Scalar>,
         d_accum_lwe: &mut CudaLweCiphertextList<Scalar>,
         d_output_lwe: &mut CudaLweCiphertextList<Scalar>,
         streams: &CudaStreams,
     ) {
         unsafe {
-            let d_clear_matrix = CudaVec::from_cpu_async(other_columns_block.as_ref(), &streams, 0);
+            //let d_clear_matrix = CudaVec::from_cpu_async(other_columns_block.as_ref(), &streams,
+            // 0);
 
             let glwe = self.data.get(glwe_index).unwrap();
             let d_input_glwe = CudaGlweCiphertextList::from_glwe_ciphertext(&glwe, &streams);

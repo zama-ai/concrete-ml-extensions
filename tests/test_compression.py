@@ -52,7 +52,7 @@ def test_compression(inner_size):
     ciphertext_a = fhext.EncryptedMatrix.deserialize(serialized_ciphertext)
 
     # Perform dot product (server side computation)
-    encrypted_result = fhext.matrix_multiplication(ciphertext_a, b, ckey)
+    encrypted_result = fhext.matrix_multiplication(ciphertext_a, b, "b", ckey)
 
     # Performs compression and serialization, then deserialize
     serialized_encrypted_result = encrypted_result.serialize()

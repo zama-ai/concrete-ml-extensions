@@ -65,7 +65,10 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
 
     # b = np.ascontiguousarray(b.T)
     matmul_result = fhext.matrix_multiplication(
-        encrypted_matrix=encrypted_matrix, data=b, compression_key=ckey
+        encrypted_matrix=encrypted_matrix,
+        clear_matrix=b,
+        clear_matrix_id="b",
+        compression_key=ckey,
     )
 
     tot_server_time = time.time() - start_time
@@ -162,7 +165,10 @@ def test_pir(n_bits, num_queries, num_items_in_ds, item_size):
     start_time = time.time()
 
     matmul_result = fhext.matrix_multiplication(
-        encrypted_matrix=encrypted_matrix, data=b, compression_key=ckey
+        encrypted_matrix=encrypted_matrix,
+        clear_matrix=b,
+        clear_matrix_id="b",
+        compression_key=ckey,
     )
 
     tot_server_time = time.time() - start_time

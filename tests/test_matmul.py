@@ -30,7 +30,9 @@ def test_integration_compute_and_serialize(size):
     with Timing("input deserialization"):
         ciphertext = fhext.EncryptedMatrix.deserialize(serialized_ciphertext)
     with Timing("matrix multiplication"):
-        encrypted_result = fhext.matrix_multiplication(ciphertext, other_values, ckey)
+        encrypted_result = fhext.matrix_multiplication(
+            ciphertext, other_values, "b", ckey
+        )
     with Timing("output serialization"):
         serialized_encrypted_result = encrypted_result.serialize()
     with Timing("output deserialization"):
@@ -102,7 +104,8 @@ def test_matrix_multiplication(size):
     with Timing("matrix multiplication"):
         matmul_result = fhext.matrix_multiplication(
             encrypted_matrix=encrypted_matrix,
-            data=other_matrix.T,
+            clear_matrix=other_matrix.T,
+            clear_matrix_id="other_matrix",
             compression_key=compression_key,
         )
 
