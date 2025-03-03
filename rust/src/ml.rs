@@ -3,10 +3,7 @@ use tfhe::core_crypto::gpu::glwe_ciphertext_list::CudaGlweCiphertextList;
 use tfhe::core_crypto::gpu::glwe_linear_algebra::cuda_glwe_dot_product_with_clear_one_to_many;
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 use tfhe::core_crypto::gpu::vec::CudaVec;
-use tfhe::core_crypto::gpu::{
-    cuda_lwe_ciphertext_add_assign, cuda_lwe_ciphertext_add_assign_async,
-    cuda_lwe_ciphertext_add_async, CudaStreams,
-};
+use tfhe::core_crypto::gpu::{cuda_lwe_ciphertext_add_assign_async, CudaStreams};
 use tfhe::core_crypto::prelude::*;
 
 #[derive(Clone)]

@@ -3,7 +3,7 @@
 // TODO: Implement something like Ix1 dimension handling for GLWECipherTexts
 
 use numpy::ndarray::Axis;
-use numpy::{Ix2, PyArray, PyArray2, PyArrayMethods, PyReadonlyArray};
+use numpy::{Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
 use pyo3::types::{PyBytes, PyString, PyTuple};
 use serde::{Deserialize, Serialize};
@@ -415,14 +415,6 @@ fn cuda_matrix_multiplication(
          where the output lwe/glwe count is equal to the input poly size"
     );
 
-    let poly_size_compress = compression_key
-        .inner
-        .packing_key_switching_key
-        .output_polynomial_size();
-
-    //let lwe_size = LweSize(poly_size_compress.0 + 1);
-    //let lwe_count = LweCiphertextCount(data_columns.len());
-
     let gpu_index = 0;
     let stream = CudaStreams::new_single_gpu(GpuIndex::new(gpu_index));
 
@@ -449,16 +441,17 @@ fn cuda_matrix_multiplication(
             ciphertext_modulus,
         );
 
-        let mut d_accum_output_lwe: CudaLweCiphertextList<u64> =
+        let d_accum_output_lwe: CudaLweCiphertextList<u64> =
             CudaLweCiphertextList::from_lwe_ciphertext_list(&h_output_lwe, &stream);
 
-        let mut d_output_lwe: CudaLweCiphertextList<u64> =
+        let d_output_lwe: CudaLweCiphertextList<u64> =
             CudaLweCiphertextList::from_lwe_ciphertext_list(&h_output_lwe, &stream);
 
         d_accum_buffers.push(d_accum_output_lwe);
 
         d_instant_buffers.push(d_output_lwe);
     });
+
     // GPU polynomial product
     let result_matrix = encrypted_matrix
         .inner
@@ -501,49 +494,6 @@ fn cuda_matrix_multiplication(
         })
         .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
 
-    /*
-       let mut row_results2 = LweCiphertextList::new(
-           0,
-           lwe_size,
-           lwe_count,
-           compression_key
-               .inner
-               .packing_key_switching_key
-               .ciphertext_modulus(),
-       );
-
-       let result_matrix = encrypted_matrix
-           .inner
-           .iter()
-           .map(|encrypted_row| {
-               //            let now = Instant::now();
-               let decompressed_row = encrypted_row.decompress();
-               //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
-               data_columns
-                   .par_iter()
-                   .zip(row_results2.par_iter_mut())
-                   .for_each(|(data_col, mut result_out)| {
-                       let data_col_slice = data_col.as_slice().unwrap();
-                       result_out.as_mut().copy_from_slice(
-                           decompressed_row
-                               .dot(data_col_slice)
-                               .as_lwe()
-                               .into_container(),
-                       );
-                   });
-
-               //            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
-
-               let compressed_row = compression_key
-                   .inner
-                   .cuda_compress_ciphertexts_into_list(&row_results2, &compression_key.buffers);
-
-               Ok(CompressedResultCipherText {
-                   inner: compressed_row,
-               })
-           })
-           .collect::<Result<Vec<CompressedResultCipherText>, PyErr>>();
-    */
     Ok(CompressedResultEncryptedMatrix {
         inner: result_matrix?,
     })
@@ -583,11 +533,7 @@ fn cpu_matrix_multiplication(
         .inner
         .iter()
         .map(|encrypted_row| {
-            //            let now = Instant::now();
             let decompressed_row = encrypted_row.decompress();
-            //            println!("DECOMPRESS : {}ms", now.elapsed().as_millis());
-
-            //            let now = Instant::now();
 
             data_columns
                 .par_iter()
@@ -601,8 +547,6 @@ fn cpu_matrix_multiplication(
                             .into_container(),
                     );
                 });
-
-            //            println!("POLY MUL TIME : {}ms", now.elapsed().as_millis());
 
             let compressed_row = compression_key
                 .inner
