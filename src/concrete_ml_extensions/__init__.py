@@ -24,7 +24,7 @@ def matrix_multiplication(
         return cuda_matrix_multiplication(
             encrypted_matrix, clear_matrix_gpu, compression_key
         )
-    return cpu_matrix_multiplication(encrypted_matrix, data, compression_key)
+    return cpu_matrix_multiplication(encrypted_matrix, clear_matrix, compression_key)
 
 
 def deserialize_compression_key(data):
