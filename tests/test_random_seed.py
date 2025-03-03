@@ -2,15 +2,21 @@ import numpy as np
 import pytest
 import warnings
 
-warnings.filterwarnings("ignore", category=pytest.PytestRemovedIn9Warning, message="The \\(path: py.path.local\\) argument is deprecated")
+warnings.filterwarnings(
+    "ignore",
+    category=pytest.PytestRemovedIn9Warning,
+    message="The \\(path: py.path.local\\) argument is deprecated",
+)
+
 
 def generate_random_data():
     """Generate some random data for testing."""
     return {
         "numpy_random": np.random.rand(5).tolist(),
         "numpy_integer": np.random.randint(1, 1000),
-        "numpy_choice": np.random.choice(["a", "b", "c", "d", "e"], size=3).tolist()
+        "numpy_choice": np.random.choice(["a", "b", "c", "d", "e"], size=3).tolist(),
     }
+
 
 def test_generate_random_data(tmp_path, request):
     """Test that generates random data and writes it to a file."""
@@ -23,22 +29,27 @@ def test_generate_random_data(tmp_path, request):
         f.write(str(data))
     print(f"Data written to {output_file}")
 
+
 def run_test_with_seed(seed, tmp_path):
     """Run the test_generate_random_data with a specific seed."""
     output_dir = tmp_path / f"test_run_seed_{seed}"
     output_dir.mkdir(parents=True, exist_ok=True)
-    pytest.main([
-        "tests/test_random_seed.py::test_generate_random_data",
-        f"--randomly-seed={seed}",
-        f"--basetemp={output_dir}",
-        "-s", "-q"
-    ])
+    pytest.main(
+        [
+            "tests/test_random_seed.py::test_generate_random_data",
+            f"--randomly-seed={seed}",
+            f"--basetemp={output_dir}",
+            "-s",
+            "-q",
+        ]
+    )
 
     # Find the output file
     output_files = list(output_dir.rglob(f"random_data_seed_{seed}*.txt"))
     if not output_files:
         raise FileNotFoundError(f"No output file found for seed {seed}")
     return output_files[0]
+
 
 def test_random_seed_consistency(tmp_path):
     """Test that the random seed produces consistent results across runs."""

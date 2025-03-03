@@ -60,7 +60,9 @@ def is_latest_entry(args):
 
             all_non_prerelease_version_infos.append(new_version_info)
 
-            new_version_is_latest = max(all_non_prerelease_version_infos) == new_version_info
+            new_version_is_latest = (
+                max(all_non_prerelease_version_infos) == new_version_info
+            )
             result["is_latest"] = new_version_is_latest
             result["is_prerelease"] = False
 
@@ -200,8 +202,10 @@ def load_file_vars_set(pyproject_path: os.PathLike, cli_file_vars: Optional[List
 
     return file_vars_set
 
+
 def set_version(args):
     _set_version(args.pyproject_file, args.file_vars, args.version)
+
 
 def _set_version(pyproject_file, file_vars, version):
     """set-version command entry point.
@@ -292,6 +296,7 @@ def get_variable_from_toml_file(file_path: Path, var_name: str):
 
 def check_version(args):
     _check_version(args.pyproject_file, args.file_vars, args.version)
+
 
 def _check_version(pyproject_file, file_vars, version):
     """check-version command entry point.
@@ -387,7 +392,9 @@ if __name__ == "__main__":
     parser_is_patch_release.set_defaults(entry_point=is_patch_release_entry)
 
     parser_set_version = sub_parsers.add_parser("set-version")
-    parser_set_version.add_argument("--version", type=str, required=True, help="The version to set")
+    parser_set_version.add_argument(
+        "--version", type=str, required=True, help="The version to set"
+    )
     parser_set_version.add_argument(
         "--pyproject-file",
         type=str,

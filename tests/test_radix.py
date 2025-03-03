@@ -2,6 +2,7 @@ import numpy as np
 import concrete_ml_extensions as fhext
 import pytest
 
+
 @pytest.mark.parametrize("ndims", [1, 2, 3])
 @pytest.mark.parametrize("dtype", [np.int8, np.uint8, np.uint16, np.int16])
 def test_radix_encrypt_decrypt_keygen(ndims, dtype):
@@ -15,11 +16,12 @@ def test_radix_encrypt_decrypt_keygen(ndims, dtype):
     dtype_bytes = np.dtype(dtype).itemsize == 1
     if len(shape) == 2 and dtype_bytes == 1:
         blob = fhext.encrypt_radix(arr, sk)
-        arr_out = fhext.decrypt_radix(blob, 
-            arr.shape, 
-            8 * dtype_bytes, 
-            np.issubdtype(np.dtype(dtype), np.signedinteger), 
-            sk
+        arr_out = fhext.decrypt_radix(
+            blob,
+            arr.shape,
+            8 * dtype_bytes,
+            np.issubdtype(np.dtype(dtype), np.signedinteger),
+            sk,
         )
 
         assert np.all(arr_out == arr)

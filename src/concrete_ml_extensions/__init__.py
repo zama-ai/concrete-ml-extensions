@@ -8,6 +8,7 @@ from .concrete_ml_extensions import *
 import numpy as np
 from typing import Tuple
 
+
 def create_private_key(crypto_params):
     if is_cuda_enabled() and is_cuda_available():
         return cuda_create_private_key(crypto_params)
@@ -25,12 +26,13 @@ def deserialize_compression_key(data):
         return CudaCompressionKey.deserialize(data)
     return CpuCompressionKey.deserialize(data)
 
+
 def encrypt_radix(arr: np.ndarray, secret_key: bytes) -> bytes:
     dtype = arr.dtype
 
     if not arr.ndim == 2 or dtype.type not in (np.uint8, np.int8):
         raise AssertionError(
-            f"Cannot encrypt datatype {str(dtype)} " 
+            f"Cannot encrypt datatype {str(dtype)} "
             f"to TFHE-rs serialized ciphertext, only 2-d [u]int8 ndarrays are supported"
         )
     else:
@@ -39,7 +41,14 @@ def encrypt_radix(arr: np.ndarray, secret_key: bytes) -> bytes:
         elif dtype.type is np.int8:
             return encrypt_serialize_i8_radix_2d(arr, secret_key)
 
-def decrypt_radix(blob: bytes, shape: Tuple[int,...], bitwidth: int, is_signed: bool, secret_key: bytes) -> np.ndarray:
+
+def decrypt_radix(
+    blob: bytes,
+    shape: Tuple[int, ...],
+    bitwidth: int,
+    is_signed: bool,
+    secret_key: bytes,
+) -> np.ndarray:
     if bitwidth == 16:
         if is_signed:
             return decrypt_serialized_i16_radix_2d(blob, shape[1], secret_key)
