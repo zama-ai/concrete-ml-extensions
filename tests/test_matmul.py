@@ -9,7 +9,7 @@ from sys import platform
 
 @pytest.mark.parametrize("size", [128, 512, 2048, 4096, 8192])
 def test_integration_compute_and_serialize(size):
-    if platform == "darwin" and inner_size > 256:
+    if platform == "darwin" and size > 256:
         pytest.skip("Skipping big matmul integration tests on Mac")
 
     # Setup
