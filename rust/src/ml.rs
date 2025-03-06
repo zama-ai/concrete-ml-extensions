@@ -63,6 +63,7 @@ impl<Scalar: UnsignedTorus> EncryptedVector<Scalar> {
         vec
     }
 
+    #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
     pub fn cuda_accum_dot_with_clear_matrix_block(
         &self,
         glwe_index: usize,
