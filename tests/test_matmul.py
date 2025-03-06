@@ -4,10 +4,14 @@ import numpy as np
 import pytest
 from conftest import Timing
 import json
+from sys import platform
 
 
 @pytest.mark.parametrize("size", [128, 512, 2048, 4096, 8192])
 def test_integration_compute_and_serialize(size):
+    if platform == "darwin" and size > 256:
+        pytest.skip("Skipping big matmul integration tests on Mac")
+
     # Setup
     vec_length = size
     num_valid_glwe_values_in_last_ciphertext = size % 2048
@@ -30,9 +34,7 @@ def test_integration_compute_and_serialize(size):
     with Timing("input deserialization"):
         ciphertext = fhext.EncryptedMatrix.deserialize(serialized_ciphertext)
     with Timing("matrix multiplication"):
-        encrypted_result = fhext.matrix_multiplication(
-            ciphertext, other_values, ckey
-        )
+        encrypted_result = fhext.matrix_multiplication(ciphertext, other_values, ckey)
     with Timing("output serialization"):
         serialized_encrypted_result = encrypted_result.serialize()
     with Timing("output deserialization"):

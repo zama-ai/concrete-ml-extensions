@@ -13,6 +13,7 @@ use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
 use tfhe::prelude::*;
 
+#[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 
 mod compression;

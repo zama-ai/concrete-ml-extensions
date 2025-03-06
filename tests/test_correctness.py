@@ -3,6 +3,7 @@ import concrete_ml_extensions as fhext
 import numpy as np
 import json
 import time
+from sys import platform
 
 CRYPTO_DTYPE = np.uint64
 
@@ -12,6 +13,8 @@ CRYPTO_DTYPE = np.uint64
 @pytest.mark.parametrize("inner_size", [256, 1024, 2048, 4096])
 @pytest.mark.parametrize("signed_b", [False, True])
 def test_correctness(n_bits, inner_size, dims, signed_b):
+    if platform == "darwin" and inner_size > 256:
+        pytest.skip("Skipping big matmul tests on Mac")
 
     assert dims == 2
 
@@ -117,6 +120,9 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
 @pytest.mark.parametrize("item_size", [2048, 100000])
 @pytest.mark.parametrize("num_queries", [10])
 def test_pir(n_bits, num_queries, num_items_in_ds, item_size):
+    if platform == "darwin":
+        pytest.skip("Skipping PIR test on Mac")
+
     low_b = 0  # randint low value is included
     high_b = 2**n_bits
 

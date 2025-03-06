@@ -1,6 +1,6 @@
 [package]
 name = "concrete-ml-extensions"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 description = "Private matrix multiplication library using fully homomorphic encryption"
 license = "BSD-3-Clause-Clear"
@@ -33,14 +33,8 @@ numpy = "0.21"
 serde_json = "1.0"
 #tfhe = "0.11.1"
 #tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "gpu", "integer" ] }
-tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "cec3d0e76b78272b6a799340329f1ec985581e13", features = ["integer", "gpu"] }
-
-#[target.'cfg(all(target_arch = "x86_64", not(target_vendor="apple")) )'.dependencies]
-#tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", branch = "as/add_circulant_poly_product", features = ["integer", "gpu"] }
-
-#[target.'cfg(any(target_arch = "aarch64", target_vendor="apple"))'.dependencies]
-#tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", branch = "as/add_circulant_poly_product", features = ["integer"] }
+tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "cec3d0e76b78272b6a799340329f1ec985581e13", features = ["integer",] }
 
 [features]
 default = ["cuda"]
-cuda = []
+cuda = ["tfhe/gpu"]

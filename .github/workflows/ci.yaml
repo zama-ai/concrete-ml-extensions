@@ -109,3 +109,38 @@ jobs:
           slab-url: ${{ secrets.SLAB_BASE_URL }}
           job-secret: ${{ secrets.JOB_SECRET }}
           label: ${{ needs.setup-ec2.outputs.runner-name }}
+
+  build-macos:
+    name: Build on macOS
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+
+      - name: Install latest stable
+        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa
+        with:
+          toolchain: stable
+
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.8
+
+      # You can test your matrix by printing the current Python version
+      - name: Install dependencies
+        run: 
+          python -m pip install "poetry==1.8.3"
+
+          python -m poetry install --all-extras --no-root
+
+      - name: Build package CPU
+        run: 
+          python -m poetry run maturin develop --no-default-features --release
+
+      - name: Run MAC CPU tests
+        run:
+          make pytest
