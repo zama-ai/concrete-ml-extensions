@@ -104,8 +104,7 @@ def test_matrix_multiplication(size):
     with Timing("matrix multiplication"):
         matmul_result = fhext.matrix_multiplication(
             encrypted_matrix=encrypted_matrix,
-            clear_matrix=other_matrix.T,
-            clear_matrix_id="other_matrix",
+            data=other_matrix.T,
             compression_key=compression_key,
         )
 
