@@ -31,7 +31,7 @@ def test_integration_compute_and_serialize(size):
         ciphertext = fhext.EncryptedMatrix.deserialize(serialized_ciphertext)
     with Timing("matrix multiplication"):
         encrypted_result = fhext.matrix_multiplication(
-            ciphertext, other_values, "b", ckey
+            ciphertext, other_values, ckey
         )
     with Timing("output serialization"):
         serialized_encrypted_result = encrypted_result.serialize()
