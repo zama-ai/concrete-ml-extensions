@@ -139,7 +139,7 @@ jobs:
 
       - name: Build package CPU
         run: 
-          python -m poetry run maturin develop --release
+          python -m poetry run maturin develop --no-default-features --release
 
       - name: Run MAC CPU tests
         run:
