@@ -22,8 +22,8 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
 
     high_a = 2**n_bits
 
-    inner_size_a = 8 if dims == 2 else None
-    inner_size_b = inner_size if dims == 2 else None
+    inner_size_a = 8
+    inner_size_b = inner_size
 
     # Signed values must be processed for the weights, so
     # we generate signed int64. This is also used to compute
@@ -44,7 +44,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
     # Change the encoding to push the inputs and the result
     # as much as possible to the left in the MSBs
     # in order to avoid noise corruption
-    params = json.loads(fhext.default_params())  # crypto_params.serialize())
+    params = json.loads(fhext.default_params())
     params["bits_reserved_for_computation"] = n_bits_compute + 1
 
     modified_crypto_params = fhext.MatmulCryptoParameters.deserialize(
@@ -63,8 +63,12 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
     )
     start_time = time.time()
 
+    # b = np.ascontiguousarray(b.T)
     matmul_result = fhext.matrix_multiplication(
-        encrypted_matrix=encrypted_matrix, data=b, compression_key=ckey
+        encrypted_matrix=encrypted_matrix,
+        clear_matrix=b,
+        clear_matrix_id="b",
+        compression_key=ckey,
     )
 
     tot_server_time = time.time() - start_time
@@ -111,7 +115,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
 
 @pytest.mark.parametrize("n_bits", [8])
 @pytest.mark.parametrize("num_items_in_ds", [10000])
-@pytest.mark.parametrize("item_size", [100000])
+@pytest.mark.parametrize("item_size", [2048, 100000])
 @pytest.mark.parametrize("num_queries", [10])
 def test_pir(n_bits, num_queries, num_items_in_ds, item_size):
     low_b = 0  # randint low value is included
@@ -161,7 +165,10 @@ def test_pir(n_bits, num_queries, num_items_in_ds, item_size):
     start_time = time.time()
 
     matmul_result = fhext.matrix_multiplication(
-        encrypted_matrix=encrypted_matrix, data=b, compression_key=ckey
+        encrypted_matrix=encrypted_matrix,
+        clear_matrix=b,
+        clear_matrix_id="b",
+        compression_key=ckey,
     )
 
     tot_server_time = time.time() - start_time

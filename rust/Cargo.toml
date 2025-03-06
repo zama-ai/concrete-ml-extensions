@@ -32,14 +32,14 @@ pyo3 = { version = "0.21.0", features = ["extension-module", "generate-import-li
 numpy = "0.21"
 serde_json = "1.0"
 #tfhe = "0.11.1"
-#tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "x86_64-unix", "gpu" ] }
-#tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", features = ["integer", "gpu"] }
+#tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "gpu", "integer" ] }
+tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "cec3d0e76b78272b6a799340329f1ec985581e13", features = ["integer", "gpu"] }
 
-[target.'cfg(all(target_arch = "x86_64", not(target_vendor="apple")) )'.dependencies]
-tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", features = ["integer", "gpu"] }
+#[target.'cfg(all(target_arch = "x86_64", not(target_vendor="apple")) )'.dependencies]
+#tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", branch = "as/add_circulant_poly_product", features = ["integer", "gpu"] }
 
-[target.'cfg(any(target_arch = "aarch64", target_vendor="apple"))'.dependencies]
-tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "2c8f0ce7", features = ["integer"] }
+#[target.'cfg(any(target_arch = "aarch64", target_vendor="apple"))'.dependencies]
+#tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", branch = "as/add_circulant_poly_product", features = ["integer"] }
 
 [features]
 default = ["cuda"]
