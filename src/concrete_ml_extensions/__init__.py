@@ -1,7 +1,7 @@
 __name__ = "concrete-ml-extensions"
 __author__ = "Zama"
 __all__ = ["concrete-ml-extensions"]
-__version__ = "0.1.5"
+__version__ = "0.1.6"
 
 from .concrete_ml_extensions import *
 
@@ -15,16 +15,17 @@ def create_private_key(crypto_params):
     return cpu_create_private_key(crypto_params)
 
 
-def matrix_multiplication(
-    encrypted_matrix, clear_matrix, clear_matrix_id: str, compression_key
-):
+def matrix_multiplication(encrypted_matrix, data, compression_key):
     if is_cuda_enabled() and is_cuda_available():
-        clear_matrix_gpu = make_cuda_clear_matrix(clear_matrix, compression_key)
+        if not isinstance(data, CudaClearMatrix):
+            clear_matrix_gpu = make_cuda_clear_matrix(data, compression_key)
+        else:
+            clear_matrix_gpu = data
 
         return cuda_matrix_multiplication(
             encrypted_matrix, clear_matrix_gpu, compression_key
         )
-    return cpu_matrix_multiplication(encrypted_matrix, clear_matrix, compression_key)
+    return cpu_matrix_multiplication(encrypted_matrix, data, compression_key)
 
 
 def deserialize_compression_key(data):
