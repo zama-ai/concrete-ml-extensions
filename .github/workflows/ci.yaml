@@ -167,6 +167,7 @@ jobs:
         run: |
           cd rust
           cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios
+          cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios-sim          
           cargo run \
             --bin uniffi-bindgen \
             --no-default-features \
