@@ -1,4 +1,4 @@
-#[cfg(all(feature = "python"))]
+#[cfg(feature = "python")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
