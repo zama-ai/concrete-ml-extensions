@@ -165,12 +165,6 @@ jobs:
 
       - name: Build package CPU
         run: |
-          xcodebuild -version
-          xcode-select -p
-          sudo rm -rf $(xcode-select -p)
-          xcode-select --install
-          xcode-select -p
-
           cd rust
           cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios
           cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios-sim          
