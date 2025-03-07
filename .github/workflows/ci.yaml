@@ -145,7 +145,7 @@ jobs:
         run:
           make pytest
 
-  build-macos:
+  build-ios:
     name: Build For iOS on macOS
     runs-on: macos-14
     steps:
