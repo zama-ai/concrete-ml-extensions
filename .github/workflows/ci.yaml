@@ -165,7 +165,7 @@ jobs:
 
       - name: Build package CPU
         run: |
-          xcode-select --switch /Library/Developer/CommandLineTools/
+          sudo xcode-select --switch /Library/Developer/CommandLineTools/
           xcodebuild -version
 
           cd rust
