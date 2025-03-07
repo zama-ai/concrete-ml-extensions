@@ -8,23 +8,10 @@ use crate::compression;
 use crate::encryption;
 use crate::ml;
 
+use crate::fhext_classes::*;
+
 type Scalar = u64;
 uniffi::setup_scaffolding!();
-
-
-// ===== Test functions =====
-
-#[uniffi::export]
-pub fn say_hello() {
-    println!("Hello from lib2!");
-}
-
-#[uniffi::export]
-pub fn add(a: u64, b: u64) -> u64 {
-    a + b
-}
-
-
 
 // ===== Custom Error =====
 
@@ -50,12 +37,7 @@ impl fmt::Display for MyError {
 
 // ===== Private Key =====
 
-#[derive(Serialize, Deserialize, Clone)]
-#[derive(uniffi::Object)]
-struct PrivateKey {
-    inner: prelude::GlweSecretKey<Vec<Scalar>>,
-    post_compression_secret_key: GlweSecretKey<Vec<Scalar>>,
-}
+
 
 #[uniffi::export]
 impl PrivateKey {

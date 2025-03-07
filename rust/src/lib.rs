@@ -16,10 +16,12 @@ use tfhe::prelude::*;
 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 
-use crate::compression;
+use crate::{compression, Scalar};
 use crate::computations;
 use crate::encryption;
 use crate::ml;
+use crate::fhext_classes::*;
+
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use std::marker::PhantomData;
@@ -45,7 +47,6 @@ use tfhe::core_crypto::gpu::CudaStreams;
 
 //use std::time::Instant;
 
-type Scalar = u64;
 #[derive(Serialize, Deserialize, Clone)]
 #[pyclass]
 pub struct EncryptedMatrix {
@@ -53,12 +54,7 @@ pub struct EncryptedMatrix {
     pub shape: (usize, usize),
 }
 
-#[derive(Serialize, Deserialize)]
-#[pyclass]
-struct PrivateKey {
-    inner: prelude::GlweSecretKey<Vec<Scalar>>,
-    post_compression_secret_key: GlweSecretKey<Vec<Scalar>>,
-}
+
 
 #[pymethods]
 impl PrivateKey {

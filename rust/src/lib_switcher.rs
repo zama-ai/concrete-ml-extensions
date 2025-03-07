@@ -1,7 +1,10 @@
+type Scalar = u64;
+
 mod compression;
 mod computations;
 mod encryption;
 mod ml;
+mod fhext_classes;
 
 #[cfg(not(feature = "use_lib2"))]
 mod lib;
