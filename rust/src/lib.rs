@@ -189,7 +189,7 @@ fn cpu_create_private_key(
         },
         CpuCompressionKey {
             inner: compression_key,
-            buffers: compression::CpuCompressionBuffers::<Scalar> { _tmp: PhantomData },
+            //buffers: compression::CpuCompressionBuffers::<Scalar> { _tmp: PhantomData },
         },
     ));
 }
@@ -390,7 +390,7 @@ fn cpu_matrix_multiplication(
 
             let compressed_row = compression_key
                 .inner
-                .cpu_compress_ciphertexts_into_list(&row_results2, &compression_key.buffers);
+                .cpu_compress_ciphertexts_into_list(&row_results2);
 
             Ok(CompressedResultCipherText {
                 inner: compressed_row,

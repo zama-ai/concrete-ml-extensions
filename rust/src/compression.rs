@@ -244,7 +244,6 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
     pub fn cpu_compress_ciphertexts_into_list<C: Container<Element = Scalar>>(
         &self,
         ciphertexts: &LweCiphertextList<C>,
-        _buffers: &CpuCompressionBuffers<Scalar>,
     ) -> Vec<CompressedModulusSwitchedGlweCiphertext<Scalar>> {
         let lwe_pksk = &self.packing_key_switching_key;
 

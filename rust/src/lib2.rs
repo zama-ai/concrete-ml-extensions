@@ -78,12 +78,6 @@ fn MatmulCryptoParameters_deserialize(content: String) -> Result<MatmulCryptoPar
 
 // ===== CpuCompressionKey =====
 
-#[derive(Serialize, Deserialize, Clone)]
-#[derive(uniffi::Object)]
-struct CpuCompressionKey {
-    inner: compression::CompressionKey<Scalar>
-}
-
 #[uniffi::export]
 impl CpuCompressionKey {
     /// Serialize into a byte vector.
@@ -106,11 +100,7 @@ fn CpuCompressionKey_deserialize(content: Vec<u8>) -> Result<CpuCompressionKey, 
 
 // ===== CipherText =====
 
-#[derive(Serialize, Deserialize, Clone)]
-#[derive(uniffi::Object)]
-struct CipherText {
-    inner: ml::SeededCompressedEncryptedVector<Scalar>,
-}
+
 
 #[uniffi::export]
 impl CipherText {
@@ -133,12 +123,6 @@ fn CipherText_deserialize(content: Vec<u8>) -> Result<CipherText, MyError> {
 
 
 // ===== EncryptedMatrix =====
-#[derive(Serialize, Deserialize, Clone)]
-#[derive(uniffi::Object)]
-pub struct EncryptedMatrix {
-    pub inner: Vec<ml::SeededCompressedEncryptedVector<Scalar>>,
-    pub shape: (usize, usize),
-}
 
 #[uniffi::export]
 impl EncryptedMatrix {
@@ -161,21 +145,12 @@ fn EncryptedMatrix_deserialize(content: Vec<u8>) -> Result<CipherText, MyError> 
 
 // ===== CompressedResultCipherText =====
 
-#[derive(Serialize, Deserialize, Clone)]
-#[derive(uniffi::Object)]
-struct CompressedResultCipherText {
-    inner: Vec<prelude::compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext<Scalar>>,
-}
+
 
 
 
 // ===== CompressedResultEncryptedMatrix =====
 
-#[derive(Serialize, Deserialize, Clone)]
-#[derive(uniffi::Object)]
-struct CompressedResultEncryptedMatrix {
-    inner: Vec<CompressedResultCipherText>,
-}
 
 #[uniffi::export]
 impl CompressedResultEncryptedMatrix {
@@ -271,8 +246,8 @@ fn decrypt_matrix(
                 num_valid_glwe_values_in_last_ciphertext as usize, // Converting back just in case
             )
         })
-        .collect::<Result<_, _>>()
-        .map_err(|e| MyError::GenericError(format!("Decryption failed: {}", e)))?;
+        .collect::<Vec<_>>(); 
+        //.map_err(|e| MyError::GenericError(format!("Decryption failed: {}", e)))?;
 
     Ok(decrypted_matrix)
 }

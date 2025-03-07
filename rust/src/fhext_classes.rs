@@ -27,7 +27,7 @@ pub struct EncryptedMatrix {
 }
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "python", pyclass)]
 #[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
 pub struct MatmulCryptoParameters {
@@ -51,13 +51,13 @@ pub struct MatmulCryptoParameters {
 }
 
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "python", pyclass)]
 #[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
 
 pub struct CpuCompressionKey {
     pub(crate) inner: compression::CompressionKey<Scalar>,
-    pub(crate) buffers: compression::CpuCompressionBuffers<Scalar>,
+//    pub(crate) buffers: compression::CpuCompressionBuffers<Scalar>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -72,6 +72,12 @@ pub struct CipherText {
 pub struct CompressedResultCipherText {
     pub(crate) inner: Vec<prelude::compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext<Scalar>>,
 }
+
+/*#[derive(Serialize, Deserialize, Clone)]
+#[derive(uniffi::Object)]
+struct CompressedResultCipherText {
+    inner: Vec<prelude::compressed_modulus_switched_glwe_ciphertext::CompressedModulusSwitchedGlweCiphertext<Scalar>>,
+}*/
 
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "python", pyclass)]
