@@ -167,6 +167,7 @@ jobs:
         run: |
           xcodebuild -version
           xcode-select -p
+          sudo rm -rf $(xcode-select -p)
           xcode-select --install
           xcode-select -p
 
