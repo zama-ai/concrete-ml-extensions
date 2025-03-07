@@ -16,10 +16,10 @@ use tfhe::prelude::*;
 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 
-mod compression;
-mod computations;
-mod encryption;
-mod ml;
+use crate::compression;
+use crate::computations;
+use crate::encryption;
+use crate::ml;
 use pyo3::prelude::*;
 use rayon::prelude::*;
 use std::marker::PhantomData;

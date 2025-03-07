@@ -42,7 +42,7 @@ uniffi = { version = "0.28", features = [ "build" ] }
 
 [features]
 default = ["cuda", "python"]
-cuda = []
+cuda = ["tfhe/gpu"]
 python = ["pyo3", "numpy"]
 use_lib2 = ["uniffi", "uniffi/cli"]
 

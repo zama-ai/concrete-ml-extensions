@@ -111,7 +111,7 @@ jobs:
           label: ${{ needs.setup-ec2.outputs.runner-name }}
 
   build-macos:
-    name: Build on macOS
+    name: Build for Python on macOS
     runs-on: macos-14
     steps:
       - name: Checkout code
@@ -144,3 +144,25 @@ jobs:
       - name: Run MAC CPU tests
         run:
           make pytest
+
+  build-macos:
+    name: Build For iOS on macOS
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+
+      - name: Install latest stable
+        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa
+        with:
+          toolchain: stable
+
+      - name: Install Swift Rust targets
+        run: |
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+
+      - name: Build package CPU
+        run: 
+          cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios
