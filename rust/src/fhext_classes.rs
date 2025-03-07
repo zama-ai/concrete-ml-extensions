@@ -20,6 +20,7 @@ pub struct PrivateKey {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
 pub struct EncryptedMatrix {
     pub inner: Vec<ml::SeededCompressedEncryptedVector<Scalar>>,
     pub shape: (usize, usize),
@@ -28,6 +29,7 @@ pub struct EncryptedMatrix {
 
 #[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
 pub struct MatmulCryptoParameters {
     // Global parameters
     pub(crate) ciphertext_modulus_bit_count: usize,  // 64?
@@ -51,6 +53,8 @@ pub struct MatmulCryptoParameters {
 
 #[derive(Serialize, Deserialize)]
 #[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
+
 pub struct CpuCompressionKey {
     pub(crate) inner: compression::CompressionKey<Scalar>,
     pub(crate) buffers: compression::CpuCompressionBuffers<Scalar>,
@@ -58,6 +62,8 @@ pub struct CpuCompressionKey {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
+
 pub struct CipherText {
     pub(crate) inner: crate::ml::SeededCompressedEncryptedVector<Scalar>,
 }
@@ -69,6 +75,7 @@ pub struct CompressedResultCipherText {
 
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
 pub struct CompressedResultEncryptedMatrix {
     pub(crate) inner: Vec<CompressedResultCipherText>,
 }
