@@ -21,3 +21,4 @@ rust/GENERATED
 xcuserdata
 
 .venv
+TestConcretMLX/build

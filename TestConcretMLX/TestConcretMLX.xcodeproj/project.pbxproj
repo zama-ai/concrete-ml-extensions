@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -18,16 +18,8 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		3226DAE42D3AA0E900595BBC /* TestConcretMLX */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = TestConcretMLX;
-			sourceTree = "<group>";
-		};
-		32AEA1192D7AF983005EE03B /* Helpers */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Helpers;
-			sourceTree = "<group>";
-		};
+		3226DAE42D3AA0E900595BBC /* TestConcretMLX */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = TestConcretMLX; sourceTree = "<group>"; };
+		32AEA1192D7AF983005EE03B /* Helpers */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Helpers; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -112,6 +104,7 @@
 				};
 			};
 			buildConfigurationList = 3226DADD2D3AA0E900595BBC /* Build configuration list for PBXProject "TestConcretMLX" */;
+			compatibilityVersion = "Xcode 15.3";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -120,7 +113,6 @@
 			);
 			mainGroup = 3226DAD92D3AA0E900595BBC;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			productRefGroup = 3226DAE32D3AA0E900595BBC /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
