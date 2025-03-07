@@ -164,5 +164,6 @@ jobs:
           rustup target add aarch64-apple-ios aarch64-apple-ios-sim
 
       - name: Build package CPU
-        run: 
+        run: |
+          cd rust
           cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios
