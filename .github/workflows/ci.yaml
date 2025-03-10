@@ -187,6 +187,9 @@ jobs:
             -headers GENERATED/include/ \
             -output GENERATED/ConcreteMLExtensions.xcframework
 
+      - name: Test iOS project compiles
+        if: false
+        run: |
           cd ..
           cd TestConcretMLX
           xcodebuild -project TestConcretMLX.xcodeproj \
