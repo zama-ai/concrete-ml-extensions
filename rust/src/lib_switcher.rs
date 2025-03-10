@@ -3,8 +3,8 @@ type Scalar = u64;
 mod compression;
 mod computations;
 mod encryption;
-mod ml;
 mod fhext_classes;
+mod ml;
 
 #[cfg(not(feature = "swift_bindings"))]
 mod lib_python;

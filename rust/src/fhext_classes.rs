@@ -2,11 +2,10 @@
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use tfhe::core_crypto::prelude::*;
 use tfhe::core_crypto::prelude;
+use tfhe::core_crypto::prelude::*;
 
-use crate::{compression, Scalar, encryption};
-use crate::ml;
+use crate::{compression, encryption, ml, Scalar};
 
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
@@ -16,8 +15,6 @@ pub struct PrivateKey {
     pub post_compression_secret_key: GlweSecretKey<Vec<Scalar>>,
 }
 
-
-
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "python_bindings", pyclass)]
 #[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
@@ -26,19 +23,18 @@ pub struct EncryptedMatrix {
     pub shape: (usize, usize),
 }
 
-
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "python_bindings", pyclass)]
 #[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
 pub struct MatmulCryptoParameters {
     // Global parameters
-    pub(crate) ciphertext_modulus_bit_count: usize,  // 64?
+    pub(crate) ciphertext_modulus_bit_count: usize, // 64?
     pub(crate) bits_reserved_for_computation: usize, // for encoding, related to poly size ?
 
     // Input parameters
-    pub(crate) encryption_glwe_dimension: GlweDimension,      // k_in
-    pub(crate) polynomial_size: usize,                        // N_in
-    pub(crate) input_storage_ciphertext_modulus: usize,       // q_in
+    pub(crate) encryption_glwe_dimension: GlweDimension, // k_in
+    pub(crate) polynomial_size: usize,                   // N_in
+    pub(crate) input_storage_ciphertext_modulus: usize,  // q_in
     pub(crate) glwe_encryption_noise_distribution_stdev: f64, // computed with RO
 
     // Output parameters
@@ -50,14 +46,13 @@ pub struct MatmulCryptoParameters {
     pub(crate) pks_noise_distrubution_stdev: f64,         // computed  with RO
 }
 
-
 #[derive(Serialize, Deserialize, Clone)]
 #[cfg_attr(feature = "python_bindings", pyclass)]
 #[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
 
 pub struct CpuCompressionKey {
     pub(crate) inner: compression::CompressionKey<Scalar>,
-//    pub(crate) buffers: compression::CpuCompressionBuffers<Scalar>,
+    //    pub(crate) buffers: compression::CpuCompressionBuffers<Scalar>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -86,7 +81,6 @@ pub struct CompressedResultEncryptedMatrix {
     pub(crate) inner: Vec<CompressedResultCipherText>,
 }
 
-
 pub static PARAMS_8B_2048_NEW: &str = r#"{
     "bits_reserved_for_computation": 27,
     "glwe_encryption_noise_distribution_stdev": 8.67361737996499e-19,
@@ -101,7 +95,6 @@ pub static PARAMS_8B_2048_NEW: &str = r#"{
     "output_storage_ciphertext_modulus": 19,
     "pks_noise_distrubution_stdev": 8.095547030480235e-30
 }"#;
-
 
 pub fn create_private_key_internal(
     crypto_params: &MatmulCryptoParameters,
@@ -146,7 +139,6 @@ pub fn create_private_key_internal(
         compression_key,
     )
 }
-
 
 pub fn internal_encrypt(
     pkey: &PrivateKey,

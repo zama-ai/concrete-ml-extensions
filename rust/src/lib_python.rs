@@ -16,11 +16,8 @@ use tfhe::prelude::*;
 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
 
-use crate::{compression, Scalar};
-use crate::computations;
-use crate::encryption;
-use crate::ml;
 use crate::fhext_classes::*;
+use crate::{compression, computations, encryption, ml, Scalar};
 
 use pyo3::prelude::*;
 use rayon::prelude::*;
@@ -133,8 +130,6 @@ impl CudaCompressionKey {
     }
 }
 
-
-
 #[pymethods]
 impl CipherText {
     fn serialize(&self, py: Python) -> PyResult<Py<PyBytes>> {
@@ -159,8 +154,6 @@ impl EncryptedMatrix {
         return Ok(deserialized);
     }
 }
-
-
 
 #[pymethods]
 impl CompressedResultEncryptedMatrix {
