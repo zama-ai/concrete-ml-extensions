@@ -88,7 +88,7 @@ jobs:
 
       - name: Build package CPU
         run:
-          python -m poetry run maturin develop --no-default-features --features "python" --release
+          python -m poetry run maturin develop --no-default-features --features "python_bindings" --release
 
       - name: Run CPU tests
         run: 
@@ -139,7 +139,7 @@ jobs:
 
       - name: Build package CPU
         run: 
-          python -m poetry run maturin develop --no-default-features --features "python" --release
+          python -m poetry run maturin develop --no-default-features --features "python_bindings" --release
 
       - name: Run MAC CPU tests
         run:
@@ -166,12 +166,12 @@ jobs:
       - name: Build package CPU
         run: |
           cd rust
-          cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios
-          cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios-sim          
+          cargo build --no-default-features --features "swift_bindings" --lib --release --target aarch64-apple-ios
+          cargo build --no-default-features --features "swift_bindings" --lib --release --target aarch64-apple-ios-sim          
           cargo run \
             --bin uniffi-bindgen \
             --no-default-features \
-            --features "uniffi/cli use_lib2" generate \
+            --features "uniffi/cli swift_bindings" generate \
             --library target/aarch64-apple-ios/release/libconcrete_ml_extensions.dylib \
             --language swift \
             --out-dir GENERATED/

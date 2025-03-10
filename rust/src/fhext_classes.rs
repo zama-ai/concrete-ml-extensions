@@ -1,4 +1,4 @@
-#[cfg(feature = "python")]
+#[cfg(feature = "python_bindings")]
 use pyo3::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -9,8 +9,8 @@ use crate::{compression, Scalar, encryption};
 use crate::ml;
 
 #[derive(Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
-#[cfg_attr(feature = "python", pyclass)]
+#[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
+#[cfg_attr(feature = "python_bindings", pyclass)]
 pub struct PrivateKey {
     pub inner: prelude::GlweSecretKey<Vec<Scalar>>,
     pub post_compression_secret_key: GlweSecretKey<Vec<Scalar>>,
@@ -19,8 +19,8 @@ pub struct PrivateKey {
 
 
 #[derive(Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "python", pyclass)]
-#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
+#[cfg_attr(feature = "python_bindings", pyclass)]
+#[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
 pub struct EncryptedMatrix {
     pub inner: Vec<ml::SeededCompressedEncryptedVector<Scalar>>,
     pub shape: (usize, usize),
@@ -28,8 +28,8 @@ pub struct EncryptedMatrix {
 
 
 #[derive(Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "python", pyclass)]
-#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
+#[cfg_attr(feature = "python_bindings", pyclass)]
+#[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
 pub struct MatmulCryptoParameters {
     // Global parameters
     pub(crate) ciphertext_modulus_bit_count: usize,  // 64?
@@ -52,8 +52,8 @@ pub struct MatmulCryptoParameters {
 
 
 #[derive(Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "python", pyclass)]
-#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
+#[cfg_attr(feature = "python_bindings", pyclass)]
+#[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
 
 pub struct CpuCompressionKey {
     pub(crate) inner: compression::CompressionKey<Scalar>,
@@ -61,8 +61,8 @@ pub struct CpuCompressionKey {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "python", pyclass)]
-#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
+#[cfg_attr(feature = "python_bindings", pyclass)]
+#[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
 
 pub struct CipherText {
     pub(crate) inner: crate::ml::SeededCompressedEncryptedVector<Scalar>,
@@ -80,8 +80,8 @@ struct CompressedResultCipherText {
 }*/
 
 #[derive(Serialize, Deserialize, Clone)]
-#[cfg_attr(feature = "python", pyclass)]
-#[cfg_attr(feature = "use_lib2", derive(uniffi::Object))]
+#[cfg_attr(feature = "python_bindings", pyclass)]
+#[cfg_attr(feature = "swift_bindings", derive(uniffi::Object))]
 pub struct CompressedResultEncryptedMatrix {
     pub(crate) inner: Vec<CompressedResultCipherText>,
 }
