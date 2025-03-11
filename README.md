@@ -1,8 +1,8 @@
 <p align="center">
 <!-- product name logo -->
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/zama-ai/concrete-ml/assets/157474013/5ed658d7-0abd-4444-9063-99d8b76c2602">
-  <source media="(prefers-color-scheme: light)" srcset="https://github.com/zama-ai/concrete-ml/assets/157474013/7c67e594-5e2c-483e-858f-ce473a36e37f">
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/user-attachments/assets/75a78517-d423-4a28-8db3-1f50e7d86925">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/user-attachments/assets/674c368f-8030-4407-985b-417a09e1fe87">
   <img width=600 alt="Zama Concrete ML">
 </picture>
 </p>
