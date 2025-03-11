@@ -72,7 +72,9 @@ Concrete ML Extensions is installed automatically when installing Concrete ML. T
 pip install concrete-ml-extensions
 ```
 
-#### From Source For Python
+To use the GPU, a CUDA-enabled GPU with support for CUDA >=11.2 should be available on the target machine.
+
+### From Source For Python
 
 This repository leverages `pyo3` to interface TFHE-rs code in python. First, setup the virtual environment. 
 Install the build tool `maturin` and the rust compiler. 
@@ -91,7 +93,10 @@ source .venv/bin/activate
 maturin develop --release
 ```
 
-#### From Source for iOS
+To compile for GPU, a CUDA-toolkit version >= 11.2 should be installed on the machine, along with 
+a compatible `gcc` version (the package compilation is tested with gcc 11.4).  
+
+### From Source for iOS
 
 You can also use Concrete ML Extensions in iOS projects. To do so:
 
