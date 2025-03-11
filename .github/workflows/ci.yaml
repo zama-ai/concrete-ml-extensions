@@ -88,7 +88,7 @@ jobs:
 
       - name: Build package CPU
         run:
-          python -m poetry run maturin develop --no-default-features --release
+          python -m poetry run maturin develop --no-default-features --features "python_bindings" --release
 
       - name: Run CPU tests
         run: 
@@ -111,7 +111,7 @@ jobs:
           label: ${{ needs.setup-ec2.outputs.runner-name }}
 
   build-macos:
-    name: Build on macOS
+    name: Build for Python on macOS
     runs-on: macos-14
     steps:
       - name: Checkout code
@@ -139,8 +139,64 @@ jobs:
 
       - name: Build package CPU
         run: 
-          python -m poetry run maturin develop --no-default-features --release
+          python -m poetry run maturin develop --no-default-features --features "python_bindings" --release
 
       - name: Run MAC CPU tests
         run:
           make pytest
+
+  build-ios:
+    name: Build For iOS on macOS
+    runs-on: macos-14
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+
+      - name: Install latest stable
+        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa
+        with:
+          toolchain: stable
+
+      - name: Install Swift Rust targets
+        run: |
+          rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+
+      - name: Build package CPU
+        run: |
+          cd rust
+          cargo build --no-default-features --features "swift_bindings" --lib --release --target aarch64-apple-ios
+          cargo build --no-default-features --features "swift_bindings" --lib --release --target aarch64-apple-ios-sim          
+          cargo run \
+            --bin uniffi-bindgen \
+            --no-default-features \
+            --features "uniffi/cli swift_bindings" generate \
+            --library target/aarch64-apple-ios/release/libconcrete_ml_extensions.dylib \
+            --language swift \
+            --out-dir GENERATED/
+          
+          mkdir -p GENERATED/include
+          mv GENERATED/concrete_ml_extensionsFFI.modulemap GENERATED/include/module.modulemap
+          mv GENERATED/concrete_ml_extensionsFFI.h GENERATED/include/concrete_ml_extensionsFFI.h
+  
+          xcodebuild -create-xcframework \
+            -library target/aarch64-apple-ios/release/libconcrete_ml_extensions.a \
+            -headers GENERATED/include/ \
+            -library target/aarch64-apple-ios-sim/release/libconcrete_ml_extensions.a \
+            -headers GENERATED/include/ \
+            -output GENERATED/ConcreteMLExtensions.xcframework
+
+      - name: Test iOS project compiles
+        if: false
+        run: |
+          cd ..
+          cd TestConcretMLX
+          xcodebuild -project TestConcretMLX.xcodeproj \
+                -scheme TestConcretMLX \
+                -sdk iphonesimulator \
+                -configuration Debug \
+                ARCHS="arm64" \
+                VALID_ARCHS="arm64" \
+                EXCLUDED_ARCHS="x86_64" \
+                build

@@ -8,7 +8,8 @@ homepage = "https://zama.ai"
 
 [lib]
 name="concrete_ml_extensions"
-crate-type = ["cdylib"]
+path = "src/lib_switcher.rs"
+crate-type = ["cdylib", "staticlib"]
 
 [profile.release]
 lto = "fat"
@@ -28,13 +29,23 @@ debug-assertions = false
 rayon = "1"
 serde = { version = "1.0", features = ["derive"] }
 bincode = "1"
-pyo3 = { version = "0.21.0", features = ["extension-module", "generate-import-lib"] }
-numpy = "0.21"
+pyo3 = { version = "0.21.0", features = ["extension-module", "generate-import-lib"], optional = true}
+uniffi = { version = "0.28", optional = true }
+numpy = { version = "0.21", optional = true }
 serde_json = "1.0"
 #tfhe = "0.11.1"
 #tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "gpu", "integer" ] }
 tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "cec3d0e76b78272b6a799340329f1ec985581e13", features = ["integer",] }
 
+[build-dependencies]
+uniffi = { version = "0.28", features = [ "build" ] }
+
 [features]
-default = ["cuda"]
+default = ["cuda", "python_bindings"]
 cuda = ["tfhe/gpu"]
+python_bindings = ["pyo3", "numpy"]
+swift_bindings = ["uniffi", "uniffi/cli"]
+
+[[bin]]
+name = "uniffi-bindgen"
+path = "src/uniffi-bindgen.rs"

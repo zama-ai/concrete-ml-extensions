@@ -16,3 +16,9 @@ Cargo.lock
 *__pycache__*
 
 .vscode
+.DS_Store
+rust/GENERATED
+xcuserdata
+
+.venv
+TestConcretMLX/build
