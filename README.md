@@ -101,10 +101,10 @@ a compatible `gcc` version (the package compilation is tested with gcc 11.4).
 
 You can also use Concrete ML Extensions in iOS projects. To do so:
 
-1. Compile the library for both iOS and iOS simulator targets (produces two `.a` static libs)
-2. Generate Swift bindings (produces `.h`, `.modulemap` and `.swift` wrapper)
-3. Package everything into an `.xcframework` (produces `.xcframework`)
-4. Use the `.xcframework` in your iOS project
+1. Compile the library for both iOS and iOS simulator targets (produces two `.a` static libs).
+2. Generate Swift bindings (produces `.h`, `.modulemap` and `.swift` wrapper).
+3. Package everything into an `.xcframework` (produces `.xcframework`).
+4. Use the `.xcframework` in your iOS project.
 
 ##### 1. Compile the library
 ```shell
