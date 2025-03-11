@@ -1,4 +1,0 @@
-module concrete_ml_extensionsFFI {
-    header "concrete_ml_extensionsFFI.h"
-    export *
-}
