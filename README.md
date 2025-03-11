@@ -62,7 +62,8 @@ Depending on your OS, Concrete ML Extensions may have GPU support.
 |            macOS 11+ (Intel)            |         Yes         |       No        |
 | macOS 11+ (Apple Silicon: M1, M2, etc.) |     Yes     |       No        |
 
-Note: Concrete ML Extensions only supports Python `3.8`, `3.9`, `3.10`, `3.11` and `3.12`.
+>[!Note]
+>Concrete ML Extensions only supports Python `3.8`, `3.9`, `3.10`, `3.11` and `3.12`.
 
 ### Pip
 
