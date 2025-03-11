@@ -203,7 +203,7 @@ To fix, a workaround [suggested here](https://github.com/jessegrosjean/module-ma
 
 ### Demos
 
-- [Encrypted LLM fine-tuning](https://github.com/zama-ai/concrete-ml/tree/main/use_case_examples/lora_finetuning): this demo shows
+- [Encrypted LLM fine-tuning](https://github.com/zama-ai/concrete-ml/tree/main/use_case_examples/lora_finetuning): This demo shows
 how to fine-tune a LLM using the Low Rank Approximation approach. It leverages the Concrete ML Extensions package to perform the fine-tuning
 on encrypted data. 
 
