@@ -29,9 +29,9 @@ Concrete ML Extensions by [Zama](https://github.com/zama-ai) is a helper package
 
 ### Main features
 
-- **Fast encrypt-clear matrix multiplication**: this library implements a matrix product between encrypted matrices and clear matrices. 
-- **Python and Swift bindings for matrix multiplication client applications**: this library contains bindings that help developers build client applications on various platforms such as iOS
-- **Encryption/Decryption to [TFHE-rs](https://docs.zama.ai/concrete-ml) ciphertexts**: to provide interoperability with TFHE-rs ciphertexts, Concrete ML Extensions provides encryption/decryption functions that are used in Concrete ML
+- **Fast encrypt-clear matrix multiplication**: This library implements a matrix product between encrypted matrices and clear matrices.
+- **Python and Swift bindings for matrix multiplication client applications**: This library contains bindings that help developers build client applications on various platforms, including iOS.
+- **Encryption/Decryption to [TFHE-rs](https://docs.zama.ai/concrete-ml) ciphertexts**: To provide interoperability with TFHE-rs ciphertexts, Concrete ML Extensions offers encryption and decryption functions that are used in Concrete ML.
 
 *Learn more about Concrete ML Extensions features in the [documentation](https://docs.zama.ai/concrete-ml).*
 <br></br>
