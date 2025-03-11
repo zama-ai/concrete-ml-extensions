@@ -53,7 +53,7 @@ Concrete ML Extensions by [Zama](https://github.com/zama-ai) is a helper package
   <br></br>
 
 
-### Installation
+## Installation
 
 Depending on your OS, Concrete ML Extensions may have GPU support.
 
