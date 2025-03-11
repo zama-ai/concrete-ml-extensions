@@ -24,7 +24,7 @@
 
 ### What is Concrete ML Extensions
 
-**Concrete ML Extensions** by [Zama](https://github.com/zama-ai) is a helper package that helps developers build applications based on **Concrete ML**. It implements low-level cryptographic functions using homomorphic encryption (FHE). 
+Concrete ML Extensions by [Zama](https://github.com/zama-ai) is a helper package that helps developers build applications based on **Concrete ML**. It implements low-level cryptographic functions using Fully Homomorphic Encryption (FHE). 
 <br></br>
 
 ### Main features
