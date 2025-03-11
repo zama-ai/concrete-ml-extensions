@@ -171,7 +171,7 @@ Next steps:
 ```
    "failed to get iphoneos SDK path: SDK "iphoneos" cannot be located"
 ```    
-Solution: ensure Xcode.app/Settings/Locations/Command Line Tools is set to the right version.
+Solution: Ensure Xcode.app/Settings/Locations/Command Line Tools is set to the right version.
 
 *Error message*:
 
