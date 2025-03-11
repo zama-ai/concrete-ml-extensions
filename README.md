@@ -43,7 +43,7 @@ Concrete ML Extensions by [Zama](https://github.com/zama-ai) is a helper package
   - [Demos](#demos)
   - [Tutorials](#tutorials)
   - [Documentation](#documentation)
-- **[Working with Concrete ML](#working-with-concrete-ml)**
+- **[Working with Concrete ML Extensions](#working-with-concrete-ml-extensions)**
   - [Citations](#citations)
   - [Contributing](#contributing)
   - [License](#license)
