@@ -66,7 +66,7 @@ Depending on your OS, Concrete ML Extensions may have GPU support.
 
 Note: Concrete ML Extensions only supports Python `3.8`, `3.9`, `3.10`, `3.11` and `3.12`.
 
-#### Pip
+### Pip
 
 Concrete ML Extensions is installed automatically when installing Concrete ML. To install manually from PyPi, run the following:
 
