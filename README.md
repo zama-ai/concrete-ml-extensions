@@ -134,7 +134,7 @@ Now, three files have been generated in the `GENERATED` subdirectory:
 - `concrete_ml_extensionsFFI.modulemap`.
 - `concrete_ml_extensions.swift`
 
-The two `*FFI` files compose the low-level C FFI layer: The C header file (.h) declares the low-level structs and functions for calling into Rust, and the .modulemap exposes them to Swift. We'll create a *first* module with these (called concrete_ml_extensions) 
+The two `*FFI` files compose the low-level C FFI layer: The C header file (`.h`) declares the low-level structs and functions for calling into Rust, and the `.modulemap` exposes them to Swift. We'll create a *first* module with these (called concrete_ml_extensions).
 
 This is enough to call the Rust library from Swift, but in a very verbose way. Instead, you want to use a higher-level Swift API, using the `*.swift` wrapper. This wrapper is uncompiled swift source code; to use it you can:
 - Either drag and drop it as source in your app codebase (simpler)
