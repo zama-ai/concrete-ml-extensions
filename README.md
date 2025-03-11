@@ -161,10 +161,11 @@ Next steps:
 ```
 
 ##### 4. Use the `.xcframework` in your iOS project
-- Copy .xcframework into your project
-- Add it to `Target > General > Frameworks, Libraries, and Embedded Content`
-- Select `Do Not Embed` (it's a static lib)
-- Copy `concrete_ml_extensions.swift` (as source code) in project
+Follow the steps below: 
+1. Copy .xcframework into your project
+2. Add it to `Target > General > Frameworks, Libraries, and Embedded Content`
+3. Select `Do Not Embed` (it's a static lib)
+4. Copy `concrete_ml_extensions.swift` (as source code) in project
 
 ##### Troubleshooting:
 *Error message*:
