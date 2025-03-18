@@ -29,7 +29,7 @@ use tfhe::{generate_keys, ClientKey, ConfigBuilder, FheInt16, FheInt8, FheUint16
 use tfhe::safe_serialization::{safe_deserialize, safe_serialize};
 
 const BLOCK_PARAMS: ClassicPBSParameters =
-    tfhe::shortint::parameters::v0_10::classic::gaussian::p_fail_2_minus_64::ks_pbs::V0_10_PARAM_MESSAGE_2_CARRY_3_KS_PBS_GAUSSIAN_2M64;
+    tfhe::shortint::parameters::v0_10::classic::gaussian::p_fail_2_minus_64::ks_pbs::V0_10_PARAM_MESSAGE_2_CARRY_2_KS_PBS_GAUSSIAN_2M64;
 
 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
