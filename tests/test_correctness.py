@@ -5,6 +5,8 @@ import json
 import time
 from sys import platform
 
+from conftest import EXPECT_LST_MSB_CORRECT_FRACTION, EXPECT_MSBS_CORRECT
+
 CRYPTO_DTYPE = np.uint64
 
 
@@ -93,7 +95,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
     # Need to check only MSBS
     # since these are those that are guaranteed
     # to be correct by the crypto-parameters
-    expect_msbs = 10
+    expect_msbs = EXPECT_MSBS_CORRECT
     shift_delta = (
         expect_msbs if n_bits_compute <= expect_msbs else n_bits_compute - expect_msbs
     )
@@ -103,7 +105,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
 
     diff = high_bits_reference != high_bits
 
-    if np.sum(diff) / diff.size > 0.05:
+    if np.sum(diff) / diff.size > EXPECT_LST_MSB_CORRECT_FRACTION:
         high_bits = high_bits.reshape((-1,))
         high_bits_reference = high_bits_reference.reshape((-1,))
         diff = high_bits_reference != high_bits
