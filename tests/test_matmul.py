@@ -133,7 +133,7 @@ def test_matrix_multiplication(size, correctness_assumption):
     print(decrypted_result.dtype)
     print(expected_result.dtype)
 
-    expect_msbs, expected_correct_fraction = correctness_assumption
+    expect_msbs, expected_correct_frac = correctness_assumption
     shift_delta_bits = (
         expect_msbs
         if max_bit_width_compute <= expect_msbs
