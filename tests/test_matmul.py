@@ -6,8 +6,6 @@ from conftest import Timing
 import json
 from sys import platform
 
-from conftest import EXPECT_MSBS_CORRECT, EXPECT_LST_MSB_CORRECT_PCT
-
 
 @pytest.mark.parametrize("size", [128, 512, 2048, 4096, 8192])
 def test_integration_compute_and_serialize(size):
@@ -64,7 +62,7 @@ def test_integration_compute_and_serialize(size):
 
 
 @pytest.mark.parametrize("size", [512, 1024, 2048, 4096])
-def test_matrix_multiplication(size):
+def test_matrix_multiplication(size, correctness_assumption):
 
     matrix_shape = (4, size)
     values = np.random.randint(0, 2**8, size=matrix_shape, dtype=np.uint64)
@@ -135,7 +133,7 @@ def test_matrix_multiplication(size):
     print(decrypted_result.dtype)
     print(expected_result.dtype)
 
-    expect_msbs = EXPECT_MSBS_CORRECT
+    expect_msbs, expected_correct_fraction = correctness_assumption
     shift_delta_bits = (
         expect_msbs
         if max_bit_width_compute <= expect_msbs
@@ -158,7 +156,7 @@ def test_matrix_multiplication(size):
     print(
         f"Mismatches: {mismatch_count}, {mismatch_percentage:.2f}%, with {mismatch_count2} mismatch in the LSB"
     )
-    if mismatch_percentage > EXPECT_LST_MSB_CORRECT_FRACTION * 100:
+    if mismatch_percentage > expected_correct_frac * 100:
         print("\nDiverging values found:")
         for idx in zip(*diverging_indices):
             print(f"Index {idx}:")

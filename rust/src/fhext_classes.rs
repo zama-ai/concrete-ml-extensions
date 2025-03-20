@@ -98,7 +98,7 @@ pub static PARAMS_8B_2048_NEW: &str = r#"{
 
 pub static PARAMS_8B_2048_NEW: &str = r#"{
     "bits_reserved_for_computation": 27,
-    "glwe_encryption_noise_distribution_stdev": 5.293956729894075e-23,
+    "glwe_encryption_noise_distribution_stdev": 2.84526747960191e-15,
     "encryption_glwe_dimension": 1,
     "polynomial_size": 2048,
     "ciphertext_modulus_bit_count": 64,
@@ -108,7 +108,7 @@ pub static PARAMS_8B_2048_NEW: &str = r#"{
     "packing_ks_polynomial_size": 2048,              
     "packing_ks_glwe_dimension": 1,       
     "output_storage_ciphertext_modulus": 26,
-    "pks_noise_distrubution_stdev":  5.293956729894075e-23
+    "pks_noise_distrubution_stdev": 2.84526747960191e-15
 }"#;
 
 pub fn create_private_key_internal(

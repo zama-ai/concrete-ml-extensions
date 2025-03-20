@@ -8,6 +8,11 @@ EXPECT_MSBS_CORRECT = 12
 EXPECT_LST_MSB_CORRECT_FRACTION = 1 / 100  # 1 out of 100 incorrect
 
 
+@pytest.fixture(scope="session")
+def correctness_assumption():
+    return (EXPECT_MSBS_CORRECT, EXPECT_LST_MSB_CORRECT_FRACTION)
+
+
 class Timing:
     def __init__(self, message=""):
         self.message = message
