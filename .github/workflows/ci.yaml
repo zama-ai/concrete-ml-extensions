@@ -222,7 +222,7 @@ jobs:
           args: --release --out dist -i python3.8
           sccache: 'true'
           manylinux: auto
-          rust-toolchain: 1.80.1
+          rust-toolchain: 1.84.0
           container: sameli/manylinux2014_x86_64_cuda_12.3
           before-script-linux: |
             yum install -y clang
