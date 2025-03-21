@@ -46,6 +46,6 @@ cuda = ["tfhe/gpu"]
 python_bindings = ["pyo3", "numpy"]
 swift_bindings = ["uniffi", "uniffi/cli"]
 
-[[bin]]
-name = "uniffi-bindgen"
-path = "src/uniffi-bindgen.rs"
+#[[bin]]
+#name = "uniffi-bindgen"
+#path = "src/uniffi-bindgen.rs"
