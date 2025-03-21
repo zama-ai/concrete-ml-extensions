@@ -46,6 +46,22 @@ jobs:
         with:
           ref: ${{ github.event.inputs.git-ref }}
 
+      - name: Install docker dependencies
+        run: 
+          docker pull sameli/manylinux2014_x86_64_cuda_12.3
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i python3.8
+          sccache: 'true'
+          manylinux: auto
+          docker-options: --gpus all
+          container: sameli/manylinux2014_x86_64_cuda_12.3
+          before-script-linux: |
+            yum install -y clang
+
       - name: Export CUDA variables
         if: ${{ !cancelled() }}
         run: |
@@ -201,29 +217,3 @@ jobs:
                 VALID_ARCHS="arm64" \
                 EXCLUDED_ARCHS="x86_64" \
                 build
-
-  build-wheel-check:
-    name: Manylinux wheel builder checker
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install docker dependencies
-        run: 
-          docker pull sameli/manylinux2014_x86_64_cuda_12.3
-
-      - name: Checkout code
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          ref: ${{ github.event.inputs.git-ref }}
-
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.platform.target }}
-          args: --release --out dist -i python3.8
-          sccache: 'true'
-          manylinux: auto
-          docker-options: --gpus all
-          container: sameli/manylinux2014_x86_64_cuda_12.3
-          before-script-linux: |
-            yum install -y clang
-
