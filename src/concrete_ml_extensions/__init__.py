@@ -1,7 +1,7 @@
 __name__ = "concrete-ml-extensions"
 __author__ = "Zama"
 __all__ = ["concrete-ml-extensions"]
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 from .concrete_ml_extensions import *
 
