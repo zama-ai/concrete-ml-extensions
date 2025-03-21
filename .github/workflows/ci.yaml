@@ -219,9 +219,10 @@ jobs:
         uses: PyO3/maturin-action@v1
         with:
           target: ${{ matrix.platform.target }}
-          args: --release  --no-default-features --features "cuda,python_bindings"  --out dist -i python3.8
+          args: --release --out dist -i python3.8
           sccache: 'true'
           manylinux: auto
+          rust-toolchain: 1.80.1
           container: sameli/manylinux2014_x86_64_cuda_12.3
           before-script-linux: |
             yum install -y clang
