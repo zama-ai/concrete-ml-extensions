@@ -46,22 +46,6 @@ jobs:
         with:
           ref: ${{ github.event.inputs.git-ref }}
 
-      - name: Install docker dependencies
-        run: 
-          docker pull sameli/manylinux2014_x86_64_cuda_12.3
-
-      - name: Build wheels
-        uses: PyO3/maturin-action@v1
-        with:
-          target: ${{ matrix.platform.target }}
-          args: --release --out dist -i python3.8
-          sccache: 'true'
-          manylinux: auto
-          docker-options: --gpus all
-          container: sameli/manylinux2014_x86_64_cuda_12.3
-          before-script-linux: |
-            yum install -y clang
-
       - name: Export CUDA variables
         if: ${{ !cancelled() }}
         run: |
@@ -110,6 +94,23 @@ jobs:
       - name: Run CPU tests
         run: 
           make pytest
+
+      - name: Install docker dependencies
+        run: 
+          docker pull sameli/manylinux2014_x86_64_cuda_12.3
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist -i python3.8
+          sccache: 'true'
+          manylinux: auto
+          docker-options: --gpus all
+          container: sameli/manylinux2014_x86_64_cuda_12.3
+          before-script-linux: |
+            yum install -y clang
+
 
   teardown-ec2:
     name: Teardown EC2 instance (fast-tests)
