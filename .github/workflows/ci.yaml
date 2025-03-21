@@ -210,6 +210,11 @@ jobs:
         run: 
           docker pull sameli/manylinux2014_x86_64_cuda_12.3
 
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -220,4 +225,4 @@ jobs:
           container: sameli/manylinux2014_x86_64_cuda_12.3
           before-script-linux: |
             yum install -y clang
-            
+
