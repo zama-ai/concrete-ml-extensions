@@ -38,7 +38,7 @@ serde_json = "1.0"
 tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "cec3d0e76b78272b6a799340329f1ec985581e13", features = ["integer",] }
 
 [build-dependencies]
-uniffi = { version = "0.28", features = [ "build" ] }
+uniffi = { version = "0.28", features = [ "build" ], optional = true }
 
 [features]
 default = ["cuda", "python_bindings"]
