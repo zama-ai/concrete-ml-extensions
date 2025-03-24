@@ -1,7 +1,7 @@
 __name__ = "concrete-ml-extensions"
 __author__ = "Zama"
 __all__ = ["concrete-ml-extensions"]
-__version__ = "0.1.6"
+__version__ = "0.1.7"
 
 from .concrete_ml_extensions import *
 
@@ -56,18 +56,36 @@ def decrypt_radix(
     is_signed: bool,
     secret_key: bytes,
 ) -> np.ndarray:
+    orig_shape = np.asarray(shape)
+    assert orig_shape.ndim == 1
+    squeezed_shape = np.delete(orig_shape, np.where(orig_shape == 1))
+
+    if squeezed_shape.size == 0:
+        squeezed_shape = np.asarray([1, 1])
+    elif squeezed_shape.size == 1:
+        squeezed_shape = np.concatenate(((1,), squeezed_shape))
+
+    assert squeezed_shape.size <= 2, "Decrypt function only supports 1d or 2d arrays"
+
     if bitwidth == 16:
         if is_signed:
-            return decrypt_serialized_i16_radix_2d(blob, shape[1], secret_key)
+            result = decrypt_serialized_i16_radix_2d(
+                blob, squeezed_shape[1], secret_key
+            )
         else:
-            return decrypt_serialized_u16_radix_2d(blob, shape[1], secret_key)
+            result = decrypt_serialized_u16_radix_2d(
+                blob, squeezed_shape[1], secret_key
+            )
     elif bitwidth == 8:
         if is_signed:
-            return decrypt_serialized_i8_radix_2d(blob, shape[1], secret_key)
+            result = decrypt_serialized_i8_radix_2d(blob, squeezed_shape[1], secret_key)
         else:
-            return decrypt_serialized_u8_radix_2d(blob, shape[1], secret_key)
+            result = decrypt_serialized_u8_radix_2d(blob, squeezed_shape[1], secret_key)
     else:
         raise AssertionError(
             f"Cannot decrypt {'un' if not is_signed else ''}signed datatype of {str(bitwidth)}b "
             f"from TFHE-rs serialized ciphertext, only [u]int[8,16] are supported"
         )
+
+    result = np.reshape(result, tuple(orig_shape))
+    return result
