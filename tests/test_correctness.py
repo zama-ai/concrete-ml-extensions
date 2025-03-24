@@ -12,7 +12,7 @@ CRYPTO_DTYPE = np.uint64
 @pytest.mark.parametrize("dims", [2])
 @pytest.mark.parametrize("inner_size", [256, 1024, 2048, 4096])
 @pytest.mark.parametrize("signed_b", [False, True])
-def test_correctness(n_bits, inner_size, dims, signed_b):
+def test_correctness(n_bits, inner_size, dims, signed_b, correctness_assumption):
     if platform == "darwin" and inner_size > 256:
         pytest.skip("Skipping big matmul tests on Mac")
 
@@ -93,7 +93,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
     # Need to check only MSBS
     # since these are those that are guaranteed
     # to be correct by the crypto-parameters
-    expect_msbs = 10
+    expect_msbs, expected_correct_frac = correctness_assumption
     shift_delta = (
         expect_msbs if n_bits_compute <= expect_msbs else n_bits_compute - expect_msbs
     )
@@ -103,7 +103,7 @@ def test_correctness(n_bits, inner_size, dims, signed_b):
 
     diff = high_bits_reference != high_bits
 
-    if np.sum(diff) / diff.size > 0.05:
+    if np.sum(diff) / diff.size > expected_correct_frac:
         high_bits = high_bits.reshape((-1,))
         high_bits_reference = high_bits_reference.reshape((-1,))
         diff = high_bits_reference != high_bits
