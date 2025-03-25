@@ -114,8 +114,8 @@ You can also use Concrete ML Extensions in iOS projects. To do so:
 
 ##### 1. Compile the library
 ```shell
-    cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios
-    cargo build --no-default-features --features "use_lib2" --lib --release --target aarch64-apple-ios-sim
+    cargo build --no-default-features --features "uniffi/cli swift_bindings" --lib --release --target aarch64-apple-ios
+    cargo build --no-default-features --features "uniffi/cli swift_bindings" --lib --release --target aarch64-apple-ios-sim
 ```
 
 You may need to install 2 additional target architectures.
