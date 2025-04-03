@@ -54,6 +54,7 @@ isort = "^5.10.1"
 black = "^24.3.0"
 pylint = "^2.13.0"
 semver = "^3.0.2"
+tqdm = "^4.66.0"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.2"
