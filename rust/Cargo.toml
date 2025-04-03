@@ -1,6 +1,6 @@
 [package]
 name = "concrete-ml-extensions"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 description = "Private matrix multiplication library using fully homomorphic encryption"
 license = "BSD-3-Clause-Clear"
