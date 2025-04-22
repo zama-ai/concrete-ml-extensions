@@ -13,8 +13,8 @@ def test_radix_encrypt_decrypt_keygen(ndims, dtype):
 
     arr = np.random.randint(vmin, vmax, size=shape, dtype=dtype)
     sk, _, _ = fhext.keygen_radix()  # pylint: disable=no-member
-    dtype_bytes = np.dtype(dtype).itemsize == 1
-    if len(shape) == 2 and dtype_bytes == 1:
+    dtype_bytes = np.dtype(dtype).itemsize
+    if len(shape) == 2 and dtype_bytes in (1, 2):
         blob = fhext.encrypt_radix(arr, sk)
         arr_out = fhext.decrypt_radix(
             blob,
