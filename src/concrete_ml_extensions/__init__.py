@@ -36,7 +36,8 @@ def deserialize_compression_key(data):
 
 def encrypt_radix(arr: np.ndarray, secret_key: bytes) -> bytes:
     dtype = arr.dtype
-    if not arr.ndim == 2 or dtype.type not in (np.uint8, np.int8, np.uint64):
+
+    if not arr.ndim == 2 or dtype.type not in (np.uint8, np.int8, np.int16, np.uint16, np.uint64):
         raise AssertionError(
             f"Cannot encrypt datatype {str(dtype)} "
             f"to TFHE-rs serialized ciphertext, only 2-d [u]int8, uint64 ndarrays are supported"
@@ -48,6 +49,10 @@ def encrypt_radix(arr: np.ndarray, secret_key: bytes) -> bytes:
             return encrypt_serialize_i8_radix_2d(arr, secret_key)
         elif dtype.type is np.uint64:
             return encrypt_serialize_u64_radix_2d(arr, secret_key)
+        elif dtype.type is np.uint16:
+            return encrypt_serialize_u16_radix_2d(arr, secret_key)
+        elif dtype.type is np.int16:
+            return encrypt_serialize_i16_radix_2d(arr, secret_key)
 
 
 def decrypt_radix(

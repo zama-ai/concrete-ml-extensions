@@ -17,7 +17,7 @@ def test_radix_encrypt_decrypt_keygen(ndims, dtype):
     # pylint: disable=no-member
     dtype_bytes = np.dtype(dtype).itemsize
     # Check if encryption is supported for this dtype and shape
-    if len(shape) == 2 and dtype in (np.uint8, np.int8, np.uint64):
+    if len(shape) == 2 and dtype in (np.uint8, np.int8, np.uint16, np.int16, np.uint64):
         blob = fhext.encrypt_radix(arr, sk)
         # Determine bitwidth based on dtype
         bitwidth = 8 * dtype_bytes

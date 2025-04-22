@@ -7,7 +7,7 @@ use tfhe::core_crypto::fft_impl::common::modulus_switch;
 use tfhe::core_crypto::prelude::*;
 
 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
-use tfhe::core_crypto::gpu::algorithms::lwe_packing_keyswitch::cuda_keyswitch_lwe_ciphertext_list_into_glwe_ciphertext_async;
+use tfhe::core_crypto::gpu::algorithms::lwe_packing_keyswitch::cuda_keyswitch_lwe_ciphertext_list_into_glwe_ciphertext_64_async;
 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::entities::lwe_packing_keyswitch_key::CudaLwePackingKeyswitchKey;
 
@@ -219,7 +219,7 @@ impl<Scalar: UnsignedTorus + Sync + Send + CastInto<usize>> CompressionKey<Scala
         );
 
         unsafe {
-            cuda_keyswitch_lwe_ciphertext_list_into_glwe_ciphertext_async(
+            cuda_keyswitch_lwe_ciphertext_list_into_glwe_ciphertext_64_async(
                 &buffers.cuda_pksk,
                 &d_input_lwe,
                 &mut d_output_glwe,

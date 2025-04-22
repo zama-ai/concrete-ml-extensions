@@ -461,7 +461,10 @@ fn concrete_ml_extensions_base(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(encrypt_serialize_i8_radix_2d, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt_serialized_i8_radix_2d, m)?)?;
 
+    m.add_function(wrap_pyfunction!(encrypt_serialize_u16_radix_2d, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt_serialized_u16_radix_2d, m)?)?;
+
+    m.add_function(wrap_pyfunction!(encrypt_serialize_i16_radix_2d, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt_serialized_i16_radix_2d, m)?)?;
 
     m.add_function(wrap_pyfunction!(encrypt_serialize_u64_radix_2d, m)?)?;
@@ -542,6 +545,52 @@ fn encrypt_serialize_i8_radix_2d(
     let cts: Vec<FheInt8> = data_vec
         .iter()
         .map(|v| FheInt8::encrypt(v.clone(), &client_key))
+        .collect();
+
+    let serialized = bincode::serialize(cts.as_slice()).unwrap();
+
+    Ok(PyBytes::new_bound(py, serialized.as_slice()).into())
+}
+
+#[pyfunction]
+fn encrypt_serialize_i16_radix_2d(
+    py: Python,
+    value: PyReadonlyArray<i16, Ix2>,
+    client_key_ser: Py<PyBytes>,
+) -> PyResult<Py<PyBytes>> {
+    let arr = value.as_array();
+
+    let client_key: ClientKey =
+        safe_deserialize(client_key_ser.as_bytes(py), SERIALIZE_SIZE_LIMIT).unwrap();
+
+    let data_vec = arr.as_standard_layout().into_owned().into_raw_vec();
+
+    let cts: Vec<FheInt16> = data_vec
+        .iter()
+        .map(|v| FheInt16::encrypt(v.clone(), &client_key))
+        .collect();
+
+    let serialized = bincode::serialize(cts.as_slice()).unwrap();
+
+    Ok(PyBytes::new_bound(py, serialized.as_slice()).into())
+}
+
+#[pyfunction]
+fn encrypt_serialize_u16_radix_2d(
+    py: Python,
+    value: PyReadonlyArray<u16, Ix2>,
+    client_key_ser: Py<PyBytes>,
+) -> PyResult<Py<PyBytes>> {
+    let arr = value.as_array();
+
+    let client_key: ClientKey =
+        safe_deserialize(client_key_ser.as_bytes(py), SERIALIZE_SIZE_LIMIT).unwrap();
+
+    let data_vec = arr.as_standard_layout().into_owned().into_raw_vec();
+
+    let cts: Vec<FheUint16> = data_vec
+        .iter()
+        .map(|v| FheUint16::encrypt(v.clone(), &client_key))
         .collect();
 
     let serialized = bincode::serialize(cts.as_slice()).unwrap();
@@ -671,7 +720,7 @@ fn keygen_radix(py: Python<'_>) -> PyResult<Bound<PyTuple>> {
     let mut bsk_ser: Vec<u8> = vec![];
     let _ = safe_serialize(&server_key, &mut bsk_ser, SERIALIZE_SIZE_LIMIT);
 
-    let (integer_ck, _, _, _) = client_key.clone().into_raw_parts();
+    let (integer_ck, _, _, _, _) = client_key.clone().into_raw_parts();
     let shortint_ck = integer_ck.into_raw_parts();
     assert!(BLOCK_PARAMS.encryption_key_choice == EncryptionKeyChoice::Big);
     let (glwe_secret_key, _, _) = shortint_ck.into_raw_parts();
