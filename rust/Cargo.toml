@@ -35,14 +35,14 @@ numpy = { version = "0.21", optional = true }
 serde_json = "1.0"
 #tfhe = "0.11.1"
 #tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "gpu", "integer" ] }
-tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "1ec21a5e0b7c12165aa7e556c01e730c3117765a", features = ["integer",] }
+tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "60e8a6a40bd441498880fc1d38d4920c60f5ce83", features = ["integer"] }
 
 [build-dependencies]
 uniffi = { version = "0.28", features = [ "build" ], optional = true }
 
 [features]
 default = ["cuda", "python_bindings"]
-cuda = ["tfhe/gpu"]
+cuda = ["tfhe/gpu", "tfhe/gpu-experimental-multi-arch"]
 python_bindings = ["pyo3", "numpy"]
 swift_bindings = ["uniffi", "uniffi/cli"]
 
