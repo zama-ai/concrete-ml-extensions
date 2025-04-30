@@ -14,7 +14,8 @@ NOISE_PROFILE_DIR_NAME = 'noise_profiles'
 
 def _get_package_resource_path(filename: str):
     """Gets the path to a resource within the noise_profiles directory."""
-    return importlib.resources.files('concrete_ml_extensions').joinpath(NOISE_PROFILE_DIR_NAME, filename)
+    with importlib.resources.path('concrete_ml_extensions', NOISE_PROFILE_DIR_NAME) as base_path:
+        return base_path / filename
 
 def _load_manifest() -> Dict[str, Any]:
     """Loads the noise profile manifest."""
