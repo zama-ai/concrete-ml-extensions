@@ -13,6 +13,8 @@ crate-type = ["cdylib", "staticlib"]
 
 [profile.release]
 lto = "fat"
+opt-level = 'z' # optimize size
+codegen-units = 1
 
 [profile.release_lto_off]
 inherits = "release"
@@ -35,16 +37,24 @@ numpy = { version = "0.21", optional = true }
 serde_json = "1.0"
 #tfhe = "0.11.1"
 #tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "gpu", "integer" ] }
-tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "1ec21a5e0b7c12165aa7e556c01e730c3117765a", features = ["integer",] }
+tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "1ec21a5e0b7c12165aa7e556c01e730c3117765a", features = ["integer"] }
+
+# WASM specific dependencies
+wasm-bindgen = { version = "0.2", features = ["serde-serialize"], optional = true }
+js-sys = { version = "0.3", optional = true } # For JavaScript types
+serde-wasm-bindgen = { version = "0.6", optional = true } # For JsValue <-> Serde
+console_error_panic_hook = { version = "0.1.7", optional = true }
+getrandom = { version = "0.2", features = ["js"], optional = true } # For WASM-compatible randomness.
 
 [build-dependencies]
 uniffi = { version = "0.28", features = [ "build" ], optional = true }
 
 [features]
-default = ["cuda", "python_bindings"]
-cuda = ["tfhe/gpu"]
+default = ["python_bindings"]
+cuda = ["tfhe/gpu", "pyo3", "numpy"]
 python_bindings = ["pyo3", "numpy"]
 swift_bindings = ["uniffi", "uniffi/cli"]
+wasm_bindings = ["console_error_panic_hook", "wasm-bindgen", "js-sys", "serde-wasm-bindgen", "getrandom", "tfhe/__wasm_api"]
 
 [[bin]]
 name = "uniffi-bindgen"

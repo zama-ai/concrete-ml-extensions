@@ -7,6 +7,7 @@ RS_BUILD_TOOLCHAIN:=stable
 CARGO_RS_BUILD_TOOLCHAIN:=+$(RS_BUILD_TOOLCHAIN)
 CARGO_PROFILE?=release
 MIN_RUST_VERSION:=1.81.0
+PYTHON_VERSION:=$(shell python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
 export RUSTFLAGS?=-C target-cpu=native
 
 
@@ -34,6 +35,18 @@ install_rs_build_toolchain:
 	rustup toolchain install --profile default "$(RS_BUILD_TOOLCHAIN)" || \
 	( echo "Unable to install $(RS_BUILD_TOOLCHAIN) toolchain, check your rustup installation. \
 	Rustup can be downloaded at https://rustup.rs/" && exit 1 )
+
+.PHONY: build_wasm # Build the WASM package
+build_wasm: install_rs_build_toolchain
+	@echo "Building WASM package..."
+	@mkdir -p rust/pkg-wasm # Ensure the output directory exists
+	cd rust && RUSTFLAGS="" PYO3_CROSS_PYTHON_VERSION=$(PYTHON_VERSION) PYO3_CROSS=1 wasm-pack build . \
+		--target web \
+		--out-name concrete_ml_extensions_wasm \
+		--out-dir ./pkg-wasm \
+		--release \
+		-- --no-default-features --features wasm_bindings
+	@echo "WASM package built in rust/pkg-wasm"
 
 .PHONY: test # Run the tests
 test: install_rs_check_toolchain
