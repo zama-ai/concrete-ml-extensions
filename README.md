@@ -89,13 +89,19 @@ pip install maturin
 Next, using `maturin` in the virtual environment, build the wheel and install it to the virtual
 environment. Build the wheel in release mode so that tfhe-rs is built in release as well.
 
-```
-source .venv/bin/activate
-maturin develop --release
-```
-
 To compile for GPU, a CUDA-toolkit version >= 11.2 should be installed on the machine, along with 
 a compatible `gcc` version (the package compilation is tested with gcc 11.4).  
+
+To build with CUDA support, use:
+```
+source .venv/bin/activate
+maturin develop --release --features cuda
+```
+
+To build without CUDA (CPU only):
+```
+maturin develop --release --no-default-features --features "python_bindings"
+```
 
 ### From Source for iOS
 
