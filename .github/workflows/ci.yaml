@@ -75,7 +75,7 @@ jobs:
 
       - name: Build package CUDA
         run: 
-          python -m poetry run maturin develop --release
+          python -m poetry run maturin develop --release --features cuda
 
       - name: CUDA check
         run:
