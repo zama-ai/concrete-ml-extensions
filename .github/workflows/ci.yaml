@@ -102,9 +102,8 @@ jobs:
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
-          target: ${{ matrix.platform.target }}
           args: --release --out dist -i python3.8
-          sccache: 'true'
+          sccache: 'false'
           manylinux: auto
           docker-options: --gpus all
           container: sameli/manylinux2014_x86_64_cuda_12.3
@@ -142,7 +141,6 @@ jobs:
         with:
           toolchain: stable
 
-      - uses: actions/checkout@v4
       - name: Set up Python 3.8
         uses: actions/setup-python@v5
         with:
