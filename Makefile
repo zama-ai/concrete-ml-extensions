@@ -36,7 +36,7 @@ install_rs_build_toolchain:
 	( echo "Unable to install $(RS_BUILD_TOOLCHAIN) toolchain, check your rustup installation. \
 	Rustup can be downloaded at https://rustup.rs/" && exit 1 )
 
-.PHONY: build_wasm # Build the WASM package
+.PHONY: build_wasm # Build the WASM package used in tests and other applications
 build_wasm: install_rs_build_toolchain
 	@echo "Building WASM package..."
 	@mkdir -p rust/pkg-wasm # Ensure the output directory exists
@@ -88,3 +88,61 @@ wheel_cpu:
 .PHONY: check_version_is_consistent
 check_version_is_consistent:
 	poetry run python scripts/version_utils.py check-version --file-vars "rust/Cargo.toml:package.version"
+
+.PHONY: build_fhe_server # Build the FHE server (helper for WASM tests)
+build_fhe_server: install_rs_build_toolchain
+	@echo "Building FHE server..."
+	cd tests/test_wasm/backend && cargo build --release
+
+.PHONY: run_fhe_server # Run the FHE server (helper for WASM tests)
+run_fhe_server: build_fhe_server
+	@echo "Starting FHE server..."
+	cd tests/test_wasm/backend && ./target/release/backend
+
+.PHONY: wasm_build_env # Builds WASM client, FHE server, and copies artifacts to frontend.
+wasm_build_env: build_wasm build_fhe_server
+	@echo "Copying WASM artifacts to frontend..."
+	@mkdir -p tests/test_wasm/frontend/pkg
+	@cp -r rust/pkg-wasm/* tests/test_wasm/frontend/pkg/
+	@echo "WASM artifacts copied to tests/test_wasm/frontend/pkg"
+	@echo "WASM build environment preparation complete"
+
+.PHONY: wasm_clean # Clean all WASM-related build and test artifacts.
+wasm_clean:
+	@echo "Cleaning WASM test build artifacts..."
+	rm -rf rust/pkg-wasm
+	rm -rf tests/test_wasm/frontend/pkg
+	rm -rf tests/test_wasm/frontend/node_modules
+	rm -rf tests/test_wasm/frontend/playwright-report
+	rm -rf tests/test_wasm/frontend/test-results
+	cd tests/test_wasm/backend && cargo clean
+
+.PHONY: wasm_dev_server # Sets up environment and runs FHE server for manual WASM testing in browser.
+wasm_dev_server: wasm_build_env
+	@echo "Starting WASM test environment for manual interaction..."
+	@echo "Open http://localhost:8000 in your browser"
+	@echo "Press Ctrl+C to stop the FHE server"
+	@make run_fhe_server
+
+.PHONY: wasm_test_e2e_install_deps # Install Playwright and its browser dependencies for E2E tests
+wasm_test_e2e_install_deps:
+	@echo "Installing Playwright test dependencies..."
+	cd tests/test_wasm/frontend && npm install --quiet
+	@echo "Installing Playwright browsers..."
+	cd tests/test_wasm/frontend && npx playwright install --with-deps
+
+.PHONY: wasm_test_e2e # Run full WASM E2E tests (cleans, builds env, installs deps, executes tests). For CI & local.
+wasm_test_e2e: wasm_clean wasm_build_env wasm_test_e2e_install_deps
+	@echo "Starting FHE server for E2E tests..."
+	cd tests/test_wasm/backend && cargo run --release & \
+	FHE_SERVER_PID=$$!; \
+	echo "FHE server started with PID $${FHE_SERVER_PID}"; \
+	echo "Waiting for server to be ready..."; \
+	sleep 8; \
+	echo "Running Playwright E2E tests..."; \
+	(cd tests/test_wasm/frontend && npx playwright test e2e.spec.js) ; EXIT_CODE=$$?; \
+	echo "Stopping FHE server (PID $${FHE_SERVER_PID})..."; \
+	kill $${FHE_SERVER_PID} || echo "Server (PID $${FHE_SERVER_PID}) already stopped or kill failed."; \
+	wait $${FHE_SERVER_PID} 2>/dev/null || echo "Server process (PID $${FHE_SERVER_PID}) finished."; \
+	echo "E2E tests finished with exit code $${EXIT_CODE}."; \
+	exit $${EXIT_CODE}
