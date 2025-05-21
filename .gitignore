@@ -24,3 +24,6 @@ xcuserdata
 TestConcretMLX/build
 
 tests/test_wasm/frontend/pkg
+tests/test_wasm/frontend/node_modules
+tests/test_wasm/frontend/playwright-report
+tests/test_wasm/frontend/test-results

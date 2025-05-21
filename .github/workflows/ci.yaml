@@ -216,3 +216,30 @@ jobs:
                 VALID_ARCHS="arm64" \
                 EXCLUDED_ARCHS="x86_64" \
                 build
+
+  test-wasm:
+    name: Test WASM Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.inputs.git-ref }}
+
+      - name: Install latest stable
+        uses: dtolnay/rust-toolchain@315e265cd78dad1e1dcf3a5074f6d6c47029d5aa
+        with:
+          toolchain: stable
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install wasm-pack
+        run: |
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Run WASM tests
+        run: |
+          make wasm_test_e2e
