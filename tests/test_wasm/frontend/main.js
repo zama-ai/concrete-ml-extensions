@@ -75,6 +75,10 @@ async function decrypt(keys, ct) {
   return Number(result[0]);
 }
 
+document.addEventListener('DOMContentLoaded', async () => {
+  await initializeWasm();
+});
+
 document.getElementById('run').onclick = async () => {
   out.textContent = '';
   
