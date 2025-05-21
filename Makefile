@@ -88,3 +88,38 @@ wheel_cpu:
 .PHONY: check_version_is_consistent
 check_version_is_consistent:
 	poetry run python scripts/version_utils.py check-version --file-vars "rust/Cargo.toml:package.version"
+
+.PHONY: build_fhe_server # Build the FHE server
+build_fhe_server: install_rs_build_toolchain
+	@echo "Building FHE server..."
+	cd tests/test_wasm/backend && cargo build --release
+
+.PHONY: run_fhe_server # Run the FHE server
+run_fhe_server: build_fhe_server
+	@echo "Starting FHE server..."
+	cd tests/test_wasm/backend && ./target/release/backend
+
+.PHONY: setup_wasm_test # Setup everything needed for the WASM test
+setup_wasm_test: build_wasm build_fhe_server
+	@echo "Copying WASM artifacts to frontend..."
+	@mkdir -p tests/test_wasm/frontend/pkg
+	@cp -r rust/pkg-wasm/* tests/test_wasm/frontend/pkg/
+	@echo "WASM artifacts copied to tests/test_wasm/frontend/pkg"
+	@echo "WASM test environment setup complete"
+
+.PHONY: run_wasm_test # Run both server and client
+run_wasm_test: setup_wasm_test
+	@echo "Starting WASM test environment..."
+	@echo "Open http://localhost:8000 in your browser"
+	@echo "Press Ctrl+C to stop all servers"
+	@make run_fhe_server
+
+.PHONY: clean_wasm_test # Clean WASM test build artifacts
+clean_wasm_test:
+	@echo "Cleaning WASM test build artifacts..."
+	rm -rf rust/pkg-wasm
+	rm -rf tests/test_wasm/frontend/pkg
+	cd tests/test_wasm/backend && cargo clean
+
+.PHONY: full_wasm_test # Clean, setup, and run the complete WASM test
+full_wasm_test: clean_wasm_test run_wasm_test

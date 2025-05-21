@@ -22,3 +22,5 @@ xcuserdata
 
 .venv
 TestConcretMLX/build
+
+tests/test_wasm/frontend/pkg
