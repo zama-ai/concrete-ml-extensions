@@ -474,7 +474,7 @@ fn concrete_ml_extensions_base(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<CpuCompressionKey>()?;
     m.add_class::<MatmulCryptoParameters>()?;
     m.add_class::<EncryptedMatrix>()?;
-    // m.add_class::<PrivateKey>()?;
+    m.add_class::<PrivateKey>()?;
     Ok(())
 }
 
