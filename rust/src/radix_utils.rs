@@ -1,6 +1,6 @@
-use tfhe::prelude::*;
-use tfhe::{ClientKey, FheUint64, ServerKey, ConfigBuilder, Seed};
 use tfhe::core_crypto::prelude::Seeder;
+use tfhe::prelude::*;
+use tfhe::{ClientKey, ConfigBuilder, FheUint64, Seed, ServerKey};
 
 #[cfg(target_arch = "wasm32")]
 fn get_wasm_seed() -> Seed {
