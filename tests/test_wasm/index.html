@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Concrete ML Extensions WASM Radix u64 Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; color: #333; }
+        .container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; text-align: center; }
+        h2 { color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 5px; margin-top: 30px; }
+        button {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #3498db;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover { background-color: #2980b9; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        p { line-height: 1.6; }
+        span, code { font-weight: bold; color: #2980b9; }
+        code { background-color: #ecf0f1; padding: 2px 5px; border-radius: 3px; font-family: monospace;}
+        .status { padding: 10px; border-radius: 4px; margin-top: 10px; text-align: center; }
+        .status.success { background-color: #e8f8f5; color: #1abc9c; border: 1px solid #a3e4d7; }
+        .status.error { background-color: #fdedec; color: #e74c3c; border: 1px solid #f5b7b1; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; margin: 0 auto; display: none; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Concrete ML Extensions WASM Radix u64 Demo</h1>
+        <button id="runDemoButton">Run Demo</button>
+        <div class="loader" id="loader"></div>
+
+        <div id="resultsArea" style="display:none;">
+            <h2>Timings:</h2>
+            <p>WASM Module Initialization: <span id="timeInit">-</span> ms</p>
+            <p>Key Generation: <span id="timeKeygen">-</span> ms</p>
+            <p>Encryption: <span id="timeEncrypt">-</span> ms</p>
+            <p>Decryption: <span id="timeDecrypt">-</span> ms</p>
+
+            <h2>Sizes:</h2>
+            <p>Client Key: <span id="sizeKey">-</span> bytes</p>
+                        <p>Server Key: <span id="sizeServerKey">-</span> bytes</p>
+            <p>Original Data (2x2 matrix of u64): <span id="sizeOriginal">-</span> bytes</p>
+            <p>Encrypted Data: <span id="sizeEncrypted">-</span> bytes</p>
+            <p>Expansion Factor (Encrypted/Original): <span id="expansionFactor">-</span></p>
+
+            <h2>Data Snapshots (first 4 elements/bytes):</h2>
+            <p>Original Data: <code id="dataOriginal">-</code></p>
+            <p>Encrypted Data (hex): <code id="dataEncrypted">-</code></p>
+            <p>Decrypted Data: <code id="dataDecrypted">-</code></p>
+            
+            <h2>Verification:</h2>
+            <div id="verificationStatus" class="status">-</div>
+        </div>
+        <div id="errorArea" class="status error" style="display:none;"></div>
+    </div>
+
+    <script type="module" src="test.js"></script>
+</body>
+</html>

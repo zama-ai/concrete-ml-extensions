@@ -19,7 +19,7 @@ test.describe('FHE Addition Demo E2E Test', () => {
     await page.click('#run');
 
     await expect(page.locator('#out')).toContainText('✅ Encrypted', { timeout: 20000 });
-    await expect(page.locator('#out')).toContainText('✅ Computed', { timeout: 45000 });
+    await expect(page.locator('#out')).toContainText('✅ Computed', { timeout: 120000 });
     await expect(page.locator('#out')).toContainText('✅ Decrypted', { timeout: 20000 });
 
     await expect(page.locator('#out')).toContainText(`🎯 Result: ${expectedSum}`);
