@@ -1,7 +1,7 @@
 __name__ = "concrete-ml-extensions"
 __author__ = "Zama"
 __all__ = ["concrete-ml-extensions"]
-__version__ = "0.1.9"
+__version__ = "0.2.0"
 
 from .concrete_ml_extensions import *
 
@@ -37,7 +37,13 @@ def deserialize_compression_key(data):
 def encrypt_radix(arr: np.ndarray, secret_key: bytes) -> bytes:
     dtype = arr.dtype
 
-    if not arr.ndim == 2 or dtype.type not in (np.uint8, np.int8, np.int16, np.uint16, np.uint64):
+    if not arr.ndim == 2 or dtype.type not in (
+        np.uint8,
+        np.int8,
+        np.int16,
+        np.uint16,
+        np.uint64,
+    ):
         raise AssertionError(
             f"Cannot encrypt datatype {str(dtype)} "
             f"to TFHE-rs serialized ciphertext, only 2-d [u]int8, uint64 ndarrays are supported"
@@ -87,9 +93,13 @@ def decrypt_radix(
             result = decrypt_serialized_u8_radix_2d(blob, squeezed_shape[1], secret_key)
     elif bitwidth == 64:
         if is_signed:
-            raise AssertionError("Signed 64-bit integers are not currently supported for Radix decryption.")
+            raise AssertionError(
+                "Signed 64-bit integers are not currently supported for Radix decryption."
+            )
         else:
-            result = decrypt_serialized_u64_radix_2d(blob, squeezed_shape[1], secret_key)
+            result = decrypt_serialized_u64_radix_2d(
+                blob, squeezed_shape[1], secret_key
+            )
     else:
         raise AssertionError(
             f"Cannot decrypt {'un' if not is_signed else ''}signed datatype of {str(bitwidth)}b "

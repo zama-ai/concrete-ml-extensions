@@ -26,12 +26,19 @@ def test_radix_encrypt_decrypt_keygen(ndims, dtype):
         # Check if decryption is supported for this bitwidth and sign
         if bitwidth in (8, 16) or (bitwidth == 64 and not is_signed):
             arr_out = fhext.decrypt_radix(
-                blob, arr.shape, bitwidth, is_signed, sk,
+                blob,
+                arr.shape,
+                bitwidth,
+                is_signed,
+                sk,
             )
             assert np.all(arr_out == arr)
         else:
             # Expect decryption to fail for unsupported types (e.g., int64)
-            with pytest.raises(AssertionError, match=".*Cannot decrypt datatype.*|.*not currently supported.*"):
+            with pytest.raises(
+                AssertionError,
+                match=".*Cannot decrypt datatype.*|.*not currently supported.*",
+            ):
                 fhext.decrypt_radix(blob, arr.shape, bitwidth, is_signed, sk)
 
     else:

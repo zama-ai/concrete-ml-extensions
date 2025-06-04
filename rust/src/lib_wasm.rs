@@ -1,15 +1,16 @@
 #![allow(clippy::excessive_precision)]
-use tfhe::ClientKey;
+use crate::radix_utils::{
+    core_decrypt_u64_radix_array, core_encrypt_u64_radix_array, core_keygen_radix,
+};
 use tfhe::safe_serialization::{safe_deserialize, safe_serialize};
-use tfhe::Seed;
-use crate::radix_utils::{core_encrypt_u64_radix_array, core_decrypt_u64_radix_array, core_keygen_radix};
+use tfhe::{ClientKey, Seed};
 
-use wasm_bindgen::prelude::*;
 use js_sys::{BigUint64Array, Uint8Array};
 use std::io::Cursor;
+use wasm_bindgen::prelude::*;
 
-use tfhe::core_crypto::seeders::Seeder;
 use getrandom::getrandom;
+use tfhe::core_crypto::seeders::Seeder;
 
 #[derive(Clone, Copy, Debug)]
 #[wasm_bindgen]
@@ -68,12 +69,13 @@ pub fn encrypt_serialize_u64_radix_flat_wasm(
     client_key_ser_js: &Uint8Array,
 ) -> Result<Uint8Array, JsValue> {
     let client_key_ser = client_key_ser_js.to_vec();
-    let client_key: ClientKey = safe_deserialize(&mut Cursor::new(&client_key_ser), SERIALIZE_SIZE_LIMIT)
-        .map_err(|e| JsValue::from_str(&format!("ClientKey deserialization error: {}", e)))?;
+    let client_key: ClientKey =
+        safe_deserialize(&mut Cursor::new(&client_key_ser), SERIALIZE_SIZE_LIMIT)
+            .map_err(|e| JsValue::from_str(&format!("ClientKey deserialization error: {}", e)))?;
 
     let mut data_vec_flat: Vec<u64> = vec![0; value_flat_js.length() as usize];
     value_flat_js.copy_to(&mut data_vec_flat);
-    
+
     core_encrypt_u64_radix_array(&data_vec_flat, &client_key)
         .map_err(|e| JsValue::from_str(&format!("Core encryption error: {}", e)))
         .map(|serialized_cts| Uint8Array::from(serialized_cts.as_slice()))
@@ -85,11 +87,12 @@ pub fn decrypt_serialized_u64_radix_flat_wasm(
     client_key_ser_js: &Uint8Array,
 ) -> Result<BigUint64Array, JsValue> {
     let client_key_ser = client_key_ser_js.to_vec();
-    let client_key: ClientKey = safe_deserialize(&mut Cursor::new(&client_key_ser), SERIALIZE_SIZE_LIMIT)
-        .map_err(|e| JsValue::from_str(&format!("ClientKey deserialization error: {}", e)))?;
+    let client_key: ClientKey =
+        safe_deserialize(&mut Cursor::new(&client_key_ser), SERIALIZE_SIZE_LIMIT)
+            .map_err(|e| JsValue::from_str(&format!("ClientKey deserialization error: {}", e)))?;
 
     let encrypted_data_ser = encrypted_data_js.to_vec();
-    
+
     core_decrypt_u64_radix_array(&encrypted_data_ser, &client_key)
         .map_err(|e| JsValue::from_str(&format!("Core decryption error: {}", e)))
         .map(|results_flat| BigUint64Array::from(results_flat.as_slice()))
