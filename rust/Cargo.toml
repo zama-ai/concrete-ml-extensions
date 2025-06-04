@@ -1,6 +1,6 @@
 [package]
 name = "concrete-ml-extensions"
-version = "0.1.9"
+version = "0.2.0"
 edition = "2021"
 description = "Private matrix multiplication library using fully homomorphic encryption"
 license = "BSD-3-Clause-Clear"
@@ -37,7 +37,7 @@ numpy = { version = "0.21", optional = true }
 serde_json = "1.0"
 #tfhe = "0.11.1"
 #tfhe = { path = "/home/stoiana/Private/Work/tfhe-rs/tfhe", features = [ "gpu", "integer" ] }
-tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "1ec21a5e0b7c12165aa7e556c01e730c3117765a", features = ["integer"] }
+tfhe = { git = "https://github.com/zama-ai/tfhe-rs.git", rev = "7b127d4b716c6e75fac85a8e2c315d632202a7ec", features = ["integer"] }
 
 # WASM specific dependencies
 wasm-bindgen = { version = "0.2", features = ["serde-serialize"], optional = true }
@@ -50,8 +50,8 @@ getrandom = { version = "0.2", features = ["js"], optional = true } # For WASM-c
 uniffi = { version = "0.28", features = [ "build" ], optional = true }
 
 [features]
-default = ["python_bindings"]
-cuda = ["tfhe/gpu", "pyo3", "numpy"]
+default = ["cuda", "python_bindings"]
+cuda = ["tfhe/gpu", "tfhe/gpu-experimental-multi-arch"]
 python_bindings = ["pyo3", "numpy"]
 swift_bindings = ["uniffi", "uniffi/cli"]
 wasm_bindings = ["console_error_panic_hook", "wasm-bindgen", "js-sys", "serde-wasm-bindgen", "getrandom", "tfhe/__wasm_api"]

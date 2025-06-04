@@ -9,7 +9,7 @@ dynamic = ["version"]
 
 [tool.poetry]
 name = "concrete-ml-extensions"
-version = "0.1.9"
+version = "0.2.0"
 description = "Concrete ML extensions is a set of tools used by the Concrete ML library implemented using the TFHE-rs library."
 license = "BSD-3-Clause-Clear"
 authors = [

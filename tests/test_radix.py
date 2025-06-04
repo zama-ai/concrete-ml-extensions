@@ -17,7 +17,7 @@ def test_radix_encrypt_decrypt_keygen(ndims, dtype):
     # pylint: disable=no-member
     dtype_bytes = np.dtype(dtype).itemsize
     # Check if encryption is supported for this dtype and shape
-    if len(shape) == 2 and dtype in (np.uint8, np.int8, np.uint64):
+    if len(shape) == 2 and dtype in (np.uint8, np.int8, np.uint16, np.int16, np.uint64):
         blob = fhext.encrypt_radix(arr, sk)
         # Determine bitwidth based on dtype
         bitwidth = 8 * dtype_bytes
@@ -26,12 +26,19 @@ def test_radix_encrypt_decrypt_keygen(ndims, dtype):
         # Check if decryption is supported for this bitwidth and sign
         if bitwidth in (8, 16) or (bitwidth == 64 and not is_signed):
             arr_out = fhext.decrypt_radix(
-                blob, arr.shape, bitwidth, is_signed, sk,
+                blob,
+                arr.shape,
+                bitwidth,
+                is_signed,
+                sk,
             )
             assert np.all(arr_out == arr)
         else:
             # Expect decryption to fail for unsupported types (e.g., int64)
-            with pytest.raises(AssertionError, match=".*Cannot decrypt datatype.*|.*not currently supported.*"):
+            with pytest.raises(
+                AssertionError,
+                match=".*Cannot decrypt datatype.*|.*not currently supported.*",
+            ):
                 fhext.decrypt_radix(blob, arr.shape, bitwidth, is_signed, sk)
 
     else:

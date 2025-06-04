@@ -2,6 +2,9 @@
 
 // TODO: Implement something like Ix1 dimension handling for GLWECipherTexts
 
+use crate::radix_utils::{
+    core_decrypt_u64_radix_array, core_encrypt_u64_radix_array, core_keygen_radix,
+};
 use numpy::ndarray::Axis;
 use numpy::{Ix2, PyArray2, PyArrayMethods, PyReadonlyArray};
 use pyo3::exceptions::PyValueError;
@@ -12,7 +15,7 @@ use tfhe::core_crypto::gpu::is_cuda_available as core_is_cuda_available;
 use tfhe::core_crypto::prelude;
 use tfhe::core_crypto::prelude::*;
 use tfhe::prelude::*;
-use crate::radix_utils::{core_encrypt_u64_radix_array, core_decrypt_u64_radix_array, core_keygen_radix};
+use tfhe::shortint::client_key::atomic_pattern::AtomicPatternClientKey;
 
 #[cfg(all(feature = "cuda", target_arch = "x86_64"))]
 use tfhe::core_crypto::gpu::lwe_ciphertext_list::CudaLweCiphertextList;
@@ -461,7 +464,10 @@ fn concrete_ml_extensions_base(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(encrypt_serialize_i8_radix_2d, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt_serialized_i8_radix_2d, m)?)?;
 
+    m.add_function(wrap_pyfunction!(encrypt_serialize_u16_radix_2d, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt_serialized_u16_radix_2d, m)?)?;
+
+    m.add_function(wrap_pyfunction!(encrypt_serialize_i16_radix_2d, m)?)?;
     m.add_function(wrap_pyfunction!(decrypt_serialized_i16_radix_2d, m)?)?;
 
     m.add_function(wrap_pyfunction!(encrypt_serialize_u64_radix_2d, m)?)?;
@@ -542,6 +548,52 @@ fn encrypt_serialize_i8_radix_2d(
     let cts: Vec<FheInt8> = data_vec
         .iter()
         .map(|v| FheInt8::encrypt(v.clone(), &client_key))
+        .collect();
+
+    let serialized = bincode::serialize(cts.as_slice()).unwrap();
+
+    Ok(PyBytes::new_bound(py, serialized.as_slice()).into())
+}
+
+#[pyfunction]
+fn encrypt_serialize_i16_radix_2d(
+    py: Python,
+    value: PyReadonlyArray<i16, Ix2>,
+    client_key_ser: Py<PyBytes>,
+) -> PyResult<Py<PyBytes>> {
+    let arr = value.as_array();
+
+    let client_key: ClientKey =
+        safe_deserialize(client_key_ser.as_bytes(py), SERIALIZE_SIZE_LIMIT).unwrap();
+
+    let data_vec = arr.as_standard_layout().into_owned().into_raw_vec();
+
+    let cts: Vec<FheInt16> = data_vec
+        .iter()
+        .map(|v| FheInt16::encrypt(v.clone(), &client_key))
+        .collect();
+
+    let serialized = bincode::serialize(cts.as_slice()).unwrap();
+
+    Ok(PyBytes::new_bound(py, serialized.as_slice()).into())
+}
+
+#[pyfunction]
+fn encrypt_serialize_u16_radix_2d(
+    py: Python,
+    value: PyReadonlyArray<u16, Ix2>,
+    client_key_ser: Py<PyBytes>,
+) -> PyResult<Py<PyBytes>> {
+    let arr = value.as_array();
+
+    let client_key: ClientKey =
+        safe_deserialize(client_key_ser.as_bytes(py), SERIALIZE_SIZE_LIMIT).unwrap();
+
+    let data_vec = arr.as_standard_layout().into_owned().into_raw_vec();
+
+    let cts: Vec<FheUint16> = data_vec
+        .iter()
+        .map(|v| FheUint16::encrypt(v.clone(), &client_key))
         .collect();
 
     let serialized = bincode::serialize(cts.as_slice()).unwrap();
@@ -671,10 +723,15 @@ fn keygen_radix(py: Python<'_>) -> PyResult<Bound<PyTuple>> {
     let mut bsk_ser: Vec<u8> = vec![];
     let _ = safe_serialize(&server_key, &mut bsk_ser, SERIALIZE_SIZE_LIMIT);
 
-    let (integer_ck, _, _, _) = client_key.clone().into_raw_parts();
+    let (integer_ck, _, _, _, _) = client_key.clone().into_raw_parts();
     let shortint_ck = integer_ck.into_raw_parts();
     assert!(BLOCK_PARAMS.encryption_key_choice == EncryptionKeyChoice::Big);
-    let (glwe_secret_key, _, _) = shortint_ck.into_raw_parts();
+
+    let AtomicPatternClientKey::Standard(std_ck) = shortint_ck.atomic_pattern else {
+        panic!();
+    };
+
+    let (glwe_secret_key, _, _, _) = std_ck.into_raw_parts();
     let lwe_secret_key = glwe_secret_key.into_lwe_secret_key();
 
     let mut lwe_ck_ser: Vec<u8> = vec![];
@@ -798,18 +855,21 @@ fn decrypt_serialized_u64_radix_2d(
 ) -> PyResult<Py<PyArray2<u64>>> {
     let client_key: ClientKey =
         safe_deserialize(client_key_ser.as_bytes(py), SERIALIZE_SIZE_LIMIT).unwrap();
-    
+
     let serialized_cts = value.as_bytes(py);
 
     match core_decrypt_u64_radix_array(serialized_cts, &client_key) {
         Ok(results) => {
             if num_cols == 0 && !results.is_empty() {
-                 return Err(PyValueError::new_err("num_cols cannot be zero if data is present"));
+                return Err(PyValueError::new_err(
+                    "num_cols cannot be zero if data is present",
+                ));
             }
             if num_cols != 0 && results.len() % num_cols != 0 {
                 return Err(PyValueError::new_err(format!(
                     "Total number of decrypted elements {} is not divisible by num_cols {}",
-                    results.len(), num_cols
+                    results.len(),
+                    num_cols
                 )));
             }
             let results2d: Vec<Vec<u64>> = if results.is_empty() {
@@ -821,7 +881,8 @@ fn decrypt_serialized_u64_radix_2d(
                     .collect()
             };
             Python::with_gil(|py_gil| {
-                let np_array: Bound<'_, PyArray2<u64>> = PyArray2::from_vec2_bound(py_gil, &results2d)?;
+                let np_array: Bound<'_, PyArray2<u64>> =
+                    PyArray2::from_vec2_bound(py_gil, &results2d)?;
                 Ok(np_array.into())
             })
         }
