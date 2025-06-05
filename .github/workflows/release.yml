@@ -101,7 +101,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release  --out dist  -i python3.8 python3.9 python3.10 python3.11 python3.12
-          sccache: 'true'
+          sccache: 'false'
           manylinux: auto
           docker-options: --gpus all
           container: sameli/manylinux2014_x86_64_cuda_12.3
@@ -141,7 +141,7 @@ jobs:
         with:
           target: ${{ matrix.platform.target }}
           args: --release --no-default-features --features "python_bindings" --out dist -i python3.8 python3.9 python3.10 python3.11 python3.12
-          sccache: 'true'
+          sccache: 'false'
       - name: Upload wheels
         uses: actions/upload-artifact@v4
         with:
@@ -168,6 +168,7 @@ jobs:
         with:
           command: upload
           args: --non-interactive --skip-existing wheels-*/*
+          sccache: 'false'
 
   teardown-ec2:
     name: Teardown EC2 instance (fast-tests)
