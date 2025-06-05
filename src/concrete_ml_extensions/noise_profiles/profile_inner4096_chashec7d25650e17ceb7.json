@@ -1,0 +1,96 @@
+{
+  "metadata": {
+    "description": "Experimentally generated noise profile for FHE matmul.",
+    "source_crypto_params_file": "default",
+    "crypto_params_hash": "ec7d25650e17ceb7",
+    "generation_details": {
+      "num_runs": 100,
+      "inner_dim": 4096,
+      "matrix_a_shape": [
+        1,
+        4096
+      ],
+      "matrix_b_shape": [
+        4096,
+        1024
+      ],
+      "input_n_bits": 8,
+      "input_signed": true
+    },
+    "max_bits_observed_during_generation": 27,
+    "crypto_parameters_used": {
+      "ciphertext_modulus_bit_count": 64,
+      "bits_reserved_for_computation": 27,
+      "encryption_glwe_dimension": 1,
+      "polynomial_size": 2048,
+      "input_storage_ciphertext_modulus": 39,
+      "glwe_encryption_noise_distribution_stdev": 2.8452674796019103e-15,
+      "packing_ks_level": 2,
+      "packing_ks_base_log": 14,
+      "packing_ks_polynomial_size": 2048,
+      "packing_ks_glwe_dimension": 1,
+      "output_storage_ciphertext_modulus": 26,
+      "pks_noise_distrubution_stdev": 2.8452674796019103e-15
+    }
+  },
+  "distribution": {
+    "means_percent_msb_first": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.001953125,
+      0.0048828125,
+      0.0107421875,
+      0.0244140625,
+      0.0595703125,
+      0.1044921875,
+      0.203125,
+      0.4140625,
+      0.794921875,
+      1.6337890625,
+      3.1806640625,
+      6.375,
+      12.701171875,
+      25.494140625,
+      44.6220703125,
+      50.083984375,
+      49.8349609375,
+      50.05078125,
+      49.791015625,
+      49.9853515625
+    ],
+    "stds_percent_msb_first": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.013671875,
+      0.021283686247757196,
+      0.03055564032648831,
+      0.04858337095247168,
+      0.07799672085642748,
+      0.10720414724725774,
+      0.14130154099754627,
+      0.22571906583115103,
+      0.34222071934930115,
+      0.599271299999773,
+      1.016962667014416,
+      1.8354740937768044,
+      3.257031976155772,
+      6.188691920295126,
+      6.229584806393311,
+      1.4337201387576646,
+      1.789519538970974,
+      1.5529173929089786,
+      1.7724014818712641,
+      1.6604649873767887
+    ]
+  }
+}

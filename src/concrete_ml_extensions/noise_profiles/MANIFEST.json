@@ -1,0 +1,47 @@
+{
+  "default_profile_key": null,
+  "profiles": {
+    "inner2048_chashec7d25650e17ceb7": {
+      "filename": "profile_inner2048_chashec7d25650e17ceb7.json",
+      "crypto_params_hash": "ec7d25650e17ceb7",
+      "description": "Generated profile for inner dimension 2048, params hash ec7d25...",
+      "inner_dim": 2048,
+      "matrix_a_shape": [
+        1,
+        2048
+      ],
+      "matrix_b_shape": [
+        2048,
+        1024
+      ]
+    },
+    "inner4096_chashec7d25650e17ceb7": {
+      "filename": "profile_inner4096_chashec7d25650e17ceb7.json",
+      "crypto_params_hash": "ec7d25650e17ceb7",
+      "description": "Generated profile for inner dimension 4096, params hash ec7d25...",
+      "inner_dim": 4096,
+      "matrix_a_shape": [
+        1,
+        4096
+      ],
+      "matrix_b_shape": [
+        4096,
+        1024
+      ]
+    },
+    "inner8192_chashec7d25650e17ceb7": {
+      "filename": "profile_inner8192_chashec7d25650e17ceb7.json",
+      "crypto_params_hash": "ec7d25650e17ceb7",
+      "description": "Generated profile for inner dimension 8192, params hash ec7d25...",
+      "inner_dim": 8192,
+      "matrix_a_shape": [
+        1,
+        8192
+      ],
+      "matrix_b_shape": [
+        8192,
+        1024
+      ]
+    }
+  }
+}
