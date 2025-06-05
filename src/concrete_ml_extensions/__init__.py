@@ -4,6 +4,7 @@ __all__ = ["concrete-ml-extensions"]
 __version__ = "0.2.0"
 
 from .concrete_ml_extensions import *
+from .utils_simulation import *
 
 import numpy as np
 from typing import Tuple
@@ -26,6 +27,27 @@ def matrix_multiplication(encrypted_matrix, data, compression_key):
             encrypted_matrix, clear_matrix_gpu, compression_key
         )
     return cpu_matrix_multiplication(encrypted_matrix, data, compression_key)
+
+
+def matrix_multiplication_simulate(
+    matrix_data: np.ndarray,
+    data: np.ndarray,
+    crypto_params_serialized = None,
+) -> np.ndarray:
+    """Simulates FHE matrix multiplication using noise profiles."""
+    if not isinstance(matrix_data, np.ndarray) or not isinstance(data, np.ndarray):
+        raise TypeError("Inputs must be NumPy arrays.")
+    if matrix_data.ndim != 2 or data.ndim != 2 :
+         raise ValueError("Simulation currently only supports 2D matrix multiplication.")
+    if matrix_data.shape[1] != data.shape[0]:
+        raise ValueError(f"Incompatible matrix dimensions for multiplication: {matrix_data.shape} x {data.shape}")
+
+    # Matrix multiplication with noise
+    result_with_noise = simulate_matmul_with_noise(
+        matrix_data, data, crypto_params_serialized
+    )
+
+    return result_with_noise
 
 
 def deserialize_compression_key(data):
