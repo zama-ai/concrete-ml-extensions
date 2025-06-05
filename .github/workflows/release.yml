@@ -63,7 +63,7 @@ jobs:
       # You can test your matrix by printing the current Python version
       - name: Install dependencies
         run: 
-          docker pull sameli/manylinux2014_x86_64_cuda_12.3
+          docker pull sameli/manylinux_2_28_x86_64_cuda_12.3
           
           docker images
 
@@ -104,7 +104,7 @@ jobs:
           sccache: 'false'
           manylinux: auto
           docker-options: --gpus all
-          container: sameli/manylinux2014_x86_64_cuda_12.3
+          container: sameli/manylinux_2_28_x86_64_cuda_12.3
           before-script-linux: |
             yum install -y clang
 
