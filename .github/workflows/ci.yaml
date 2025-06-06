@@ -77,11 +77,11 @@ jobs:
 #        run: 
 #          python -m poetry run maturin develop --release --features cuda
 
-      - name: CUDA check
-        run:
-          nvidia-smi
+#      - name: CUDA check
+#        run:
+#          nvidia-smi
 
-          scripts/print_cuda_infos.sh
+ #         scripts/print_cuda_infos.sh
 
  #     - name: Run CUDA tests
  #       run:
