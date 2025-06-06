@@ -66,34 +66,34 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       # You can test your matrix by printing the current Python version
-#      - name: Install dependencies
-#        run: 
-#          python -m pip install "poetry==1.8.3"
-#
-#          python -m poetry install --all-extras --no-root
+      - name: Install dependencies
+        run: 
+          python -m pip install "poetry==1.8.3"
+
+          python -m poetry install --all-extras --no-root
 
 
-#      - name: Build package CUDA
-#        run: 
-#          python -m poetry run maturin develop --release --features cuda
+      - name: Build package CUDA
+        run: 
+          python -m poetry run maturin develop --release --features cuda
 
-#      - name: CUDA check
-#        run:
-#          nvidia-smi
+      - name: CUDA check
+        run:
+          nvidia-smi
 
- #         scripts/print_cuda_infos.sh
+          scripts/print_cuda_infos.sh
 
- #     - name: Run CUDA tests
- #       run:
- #         make pytest
+      - name: Run CUDA tests
+        run:
+          make pytest
 
-#      - name: Build package CPU
-#        run:
-#          python -m poetry run maturin develop --no-default-features --features "python_bindings" --release
+      - name: Build package CPU
+        run:
+          python -m poetry run maturin develop --no-default-features --features "python_bindings" --release
 
-#      - name: Run CPU tests
-#        run: 
-#          make pytest
+      - name: Run CPU tests
+        run: 
+          make pytest
 
       - name: Install docker dependencies
         run: 
@@ -109,8 +109,6 @@ jobs:
           container: sameli/manylinux_2_34_x86_64_cuda_12.8
           before-script-linux: |
             yum install -y clang 
-#            gcc-toolset-10
-#            source scl_source enable gcc-toolset-10
 
   teardown-ec2:
     name: Teardown EC2 instance (fast-tests)
