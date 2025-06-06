@@ -97,7 +97,7 @@ jobs:
 
       - name: Install docker dependencies
         run: 
-          docker pull sameli/manylinux_2_28_x86_64_cuda_12.3
+          docker pull sameli/sameli/manylinux_2_34_x86_64_cuda_12.8
 
       - name: Build wheels
         uses: PyO3/maturin-action@v1
@@ -106,10 +106,11 @@ jobs:
           sccache: 'false'
           manylinux: auto
           docker-options: --gpus all
-          container: sameli/manylinux_2_28_x86_64_cuda_12.3
+          container: sameli/sameli/manylinux_2_34_x86_64_cuda_12.8
           before-script-linux: |
-            yum install -y clang gcc-toolset-10
-            source scl_source enable gcc-toolset-10
+            yum install -y clang 
+#            gcc-toolset-10
+#            source scl_source enable gcc-toolset-10
 
   teardown-ec2:
     name: Teardown EC2 instance (fast-tests)
