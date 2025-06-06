@@ -108,8 +108,8 @@ jobs:
           docker-options: --gpus all
           container: sameli/manylinux_2_28_x86_64_cuda_12.3
           before-script-linux: |
-            yum install -y clang
-
+            yum install -y clang gcc-toolset-10
+            scl enable gcc-toolset-10 bash
 
   teardown-ec2:
     name: Teardown EC2 instance (fast-tests)
